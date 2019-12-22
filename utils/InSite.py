@@ -65,18 +65,29 @@ class InSite:
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "body > div.navigation > ul > li:nth-child(5) > a"))
             )
             site_link.click()
-            # 切换到跳转的页面--联系系统
-            driver.switch_to.window(driver.window_handles[1])
-            set_link = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "#nav_yhdl_s140928 > dd:nth-child(2) > a"))
-            )
-            set_link.click()
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".table"))
-            )
-            html = driver.page_source
-            return html
-
+            # 切换到跳转的页面--练习系统,judge login success by link_text
+            try:
+                driver.switch_to.window(driver.window_handles[1])
+                login_success = WebDriverWait(driver, 10).until(
+                    EC.text_to_be_present_in_element((By.CSS_SELECTOR, "#nav_yhdl_s140928 > dd:nth-child(2) > a"),
+                                                     "试题集")
+                )
+            except Exception:
+                # jump to practice site error,not exist 试题集
+                # close error window
+                driver.close()
+            #  return when login success
+            if login_success:
+                return login_success
+            # set_link =
+            # set_link.click()
+            # WebDriverWait(driver, 10).until(
+            #     EC.presence_of_element_located((By.CSS_SELECTOR, ".table"))
+            # )
+            # html = driver.page_source
+            # return html
         except TimeoutException as e:
             print('TimeoutException')
 
+            # try again
+            self.in_practice_set_site()

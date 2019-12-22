@@ -192,7 +192,7 @@ def main():
     check_problem_set()
     # parse_problem_set(problem_set)
     parse_html_error_problem()
-    driver.close()
+    driver.quit()
 
 
 not_in_algo = [41, 144, 154, 153]
