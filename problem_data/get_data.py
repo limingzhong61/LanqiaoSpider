@@ -4,7 +4,7 @@ import re
 import traceback
 
 import mongo
-from config import USERS
+from config import USERS, base_save_path
 from const import *
 from utils import driver_util
 from utils.InSite import *
@@ -16,7 +16,7 @@ base_search_url = "http://lx.lanqiao.cn/status.page?sename=&seprname="
 
 
 class GetData:
-    def __init__(self, driver, path,user):
+    def __init__(self, driver, path, user):
         self.driver = driver
         self.path = path
         self.user = user
@@ -64,6 +64,7 @@ class GetData:
                     "输出": 'output'
                 }
                 click_cnt = 0
+                btn_len = len(buttons)
                 for btn in buttons:
                     lick_text = btn.get_attribute('onclick')
                     lick_num = re.search(r'\d+', lick_text).group(0)
@@ -73,22 +74,25 @@ class GetData:
                     if file_dict.get(file_name, False):
                         print(file_name + ":exist")
                     else:
-                        print(file_name + ": not exist,downloading...")
+                        print(file_name + ": not exist,downloading...", end="")
                         btn.click()
-                        click_cnt += 1
-                        self.user.tryCnt -= 1
-                        if self.user.tryCnt == 0:
-                            print("user {} tryCnt run out".format(self.user.name))
+                        self.user.tryTime -= 1
+                        if self.user.tryTime == 0:
+                            print("user {} tryTime run out".format(self.user.real_name), end="")
                             break
                         time.sleep(1)
+                    # confirm have this file
+                    click_cnt += 1
+                    print("            rate:{}/{}".format(click_cnt, btn_len))
                 # checking if total file equals  problem data
-                if click_cnt == buttons.__len__:
+                print(btn_len)
+                if click_cnt == btn_len:
+                    print("-----get problem data success-----")
                     problem[PROBLEM.STATE] = STATE_VALUE.DATA_SUCCESS
                 else:
-                    print("----------get problem data unknown error--------")
-                    print("get file {}, not enough for {}".format(click_cnt, buttons.__len__))
+                    # print("----------get problem data unknown error--------")
+                    print("tryTime run out,get file {}, not enough for {}".format(click_cnt, btn_len))
                     problem[PROBLEM.STATE] = STATE_VALUE.DATA_ERROR
-                print("-----get problem data success-----")
             except Exception as e:
                 traceback.print_exc()
                 # gain data error
@@ -100,6 +104,7 @@ class GetData:
             driver.close()
             return
         except TimeoutException:
+            traceback.print_exc()
             problem[PROBLEM.STATE] = STATE_VALUE.DATA_ERROR
             print("get problem data error")
             mongo.save_problem(problem)
@@ -122,7 +127,47 @@ class GetData:
             print('''submit problem error''')
 
 
-def check_problem_set():
+def get_data_try_with_user(problem, user):
+    # 获取爬取的题目
+    title = problem[PROBLEM.TITLE]
+    path = base_save_path + '\\' + title
+    driver = driver_util.get_driver_with_download_path(path)
+    InSite(driver=driver, username=user.username, password=user.password).in_practice_set_site()
+    GetData(driver=driver, path=path, user=user).get_problem_data(problem=problem)
+    # 休息一下，时间太短爬取会被封掉下载文件资格，
+    '''
+        下载一个半就GG了，第二天（24小时之后，才能下载）
+        所以一个账号每天只能爬取一道题
+    '''
+    try:
+        # print("close in 132")
+        driver.quit()
+    except Exception:
+        traceback.print_exc()
+        print("close driver exception 136")
+
+
+def try_with_each_user(prolem):
+    """
+    try get full problem data with each user
+    :param prolem:
+    :return: bool 是否能继续尝试
+    """
+    have_try = False
+    for user in USERS:
+        # if user.real_name != "朱文杰":
+        #     continue
+        # try again
+        print("tryTime:{},canTry:{}".format(user.tryTime, user.canTry))
+        if user.tryTime != 0 and user.canTry:
+            print(user.real_name + ": begin--------------")
+            get_data_try_with_user(prolem, user)
+            print(user.real_name + ": over------------")
+            have_try = True
+    return have_try
+
+
+def main():
     for problem_set in mongo.problem_set_table.find():
         name = problem_set[PROBLEM_SET.NAME]
         total = problem_set[PROBLEM_SET.TOTAL]
@@ -135,55 +180,21 @@ def check_problem_set():
             print(name + "total=" + str(total) + ": OK")
         else:
             print("problem_data: " + str(query_cnt) + " not enough for " + str(total))
-            query = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}
-            print(query)
-            find_problem = mongo.problem_table.find_one(query)
-            if find_problem:
-                return find_problem
-            query = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.DATA_ERROR}
-            find_problem = mongo.problem_table.find_one(query)
-            if find_problem:
-                return find_problem
+            # first to solve data_error.
+            query1 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.DATA_ERROR}
+            query2 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}
+            queries = [query1, query2]
+            for query in queries:
+                print(query)
+                find_problems = mongo.problem_table.find(query)
+                for find_problem in find_problems:
+                    print(find_problem)
+                    if not try_with_each_user(find_problem):
+                        return
             else:
-                print("all ok !!!!!!")
-                return
-
-
-def spider(base_save_path, user):
-    # 获取爬取的题目
-    problem = check_problem_set()
-    print(problem)
-    if not problem:
+                print("ok")
+    else:
         print("ALL ok !!!!")
-        return
-    title = problem[PROBLEM.TITLE]
-    path = base_save_path + '\\' + title
-    driver = driver_util.get_driver_with_download_path(path)
-    InSite(driver=driver, username=user.username, password=user.password).in_practice_set_site()
-    GetData(driver=driver, path=path,user = user).get_problem_data(problem=problem)
-    # 休息一下，时间太短爬取会被封掉下载文件资格，
-    '''
-        下载一个半就GG了，第二天（24小时之后，才能下载）
-        所以一个账号每天只能爬取一道题
-    '''
-    # try again
-    if user.tryCnt != 0 and user.canTry:
-        spider(base_save_path, user)
-    try:
-        # print("close in 132")
-        driver.quit()
-    except Exception:
-        print("close driver exception 136")
-
-
-def main():
-    base_save_path = r'E:\problem_data'
-    for user in USERS:
-        # if user.real_name == "李明忠":
-        #     continue
-        print(user.real_name + ": begin--------------")
-        spider(user=user, base_save_path=base_save_path)
-        print(user.real_name + ": over------------")
 
 
 if __name__ == "__main__":
