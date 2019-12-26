@@ -2,7 +2,8 @@
 import re
 
 import pymongo
-from config import *
+# from config import *
+from config import MONGO
 from const import *
 
 client = pymongo.MongoClient(MONGO.URL)
@@ -82,17 +83,11 @@ def __update_all_problem_state__():
 
 
 if __name__ == "__main__":
-    a = ""
-    query = {PROBLEM.TITLE: {"$regex": "^" + "VIP"}}
-    # for problem in problem_table.find({}):
-    #     print(problem)
-    #     title = problem[PROBLEM.TITLE]
-    #     if reg.match(title):
-    #         problem[PROBLEM.TITLE] = title.replace("VIP试题 ","")
-    #         problem[PROBLEM.VIP] = True
-    #         print(problem)
-    #         # break
-    #     else:
-    #         problem[PROBLEM.VIP] = False
-    #     update_problem_with_new_filed(problem)
-
+    ""
+    # query = {PROBLEM.STATE: STATE_VALUE.DATA_SUCCESS}
+    # print(query)
+    # problems = problem_table.find(query)
+    # print(problems)
+    # for problem in problems:
+    #     problem[PROBLEM.STATE] = STATE_VALUE.FILE_SUCCESS
+    #     problem_table.find_one_and_update({PROBLEM.ID: problem[PROBLEM.ID]}, {"$set": problem})

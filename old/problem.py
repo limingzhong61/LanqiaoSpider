@@ -8,7 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
 from pyquery import PyQuery as pq
-import mongo
+from utils import mongo
 from config import *
 from const import *
 from utils.InSite import InSite

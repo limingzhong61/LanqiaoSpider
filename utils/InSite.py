@@ -32,7 +32,6 @@ class InSite:
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "#pawLoginOpen"))
             )
             change_input.click()
-
             username_input = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "#l-phone"))
             )
