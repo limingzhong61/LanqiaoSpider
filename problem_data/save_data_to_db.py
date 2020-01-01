@@ -1,11 +1,10 @@
-import re
+import traceback
 
 from gevent import os
 
 from const import PROBLEM, STATE_VALUE
-from problem_data.get_data import confirm_all_downloaded
-from utils.mongo import problem_table
 from problem_data.data_config import *
+from utils.mongo import problem_table
 
 
 def save_file_to_db(query, problem):
@@ -32,20 +31,28 @@ def save_file_to_db(query, problem):
                 name = s + str(i) + ".txt"
                 try:
                     data.append(data_dict[name])
+                    # print("data_list add:{}".format(name))
                 except KeyError:
                     problem[PROBLEM.STATE] = STATE_VALUE.PARSE_DATA_ERROR
                     print("file_error... jumping：{}".format(path+file_name))
                     return
+            data_list.append(data)
         # 解析成功
         else:
-            data_list.append(data)
             # print(data_dict)
-            # print(data_list)
             problem[PROBLEM.DATA] = data_list
             problem[PROBLEM.STATE] = STATE_VALUE.DATA_SUCCESS
-            print(problem)
+            # print(problem)
         new_problem = {"$set": problem}
-        problem_table.find_one_and_update(query, new_problem)
+        try:
+            print(problem)
+            problem_table.find_one_and_update(query, new_problem)
+        except Exception:
+            traceback.print_exc()
+            problem[PROBLEM.DATA] = ""
+            problem[PROBLEM.STATE] = STATE_VALUE.PARSE_DATA_ERROR
+            print("judge_data to big!!!!!: {}".format(name))
+            problem_table.find_one_and_update(query, new_problem)
 
 
 def main():
@@ -57,7 +64,7 @@ def main():
             query = {PROBLEM.TITLE: title}
             problem = problem_table.find_one(query)
             # print(problem)
-            if problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS:
+            if problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS or problem[PROBLEM.STATE] == STATE_VALUE.DATA_SUCCESS:
                 # print(STATE_VALUE.FILE_SUCCESS)
                 save_file_to_db(query, problem)
 

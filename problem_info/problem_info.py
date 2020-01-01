@@ -1,5 +1,6 @@
 # coding:utf-8
 import time
+import traceback
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -34,7 +35,11 @@ def get_problem_set(html):
 
 
 def parse_problem_set(problem_set):
-    ''' parse problem set page'''
+    """
+    parse problem set page
+    :param problem_set: form db
+    :return:
+    """
     try:
         driver.get(base_practice_url + problem_set['href'])
         wait.until(
@@ -52,8 +57,8 @@ def parse_problem_set(problem_set):
                 'href': item.find('td').eq(1).find('a').attr('href')
             }
             # 已经解析成功不需要访问
-            if mongo.problem_table.find_one({PROBLEM.ID: problem[PROBLEM.ID], PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}):
-                continue
+            # if mongo.problem_table.find_one({PROBLEM.ID: problem[PROBLEM.ID], PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}):
+            #             #     continue
             print(problem["id"])
             get_problem_html(problem)
     except TimeoutException:
@@ -78,7 +83,14 @@ def get_problem_html(problem):
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR, "body > div.bodydiv > div:nth-child(4) > div.des > " + div_class['header']))
             )
-            parse_problem(problem, div_class)
+            html = driver.page_source
+            doc = pq(html)
+            info = doc("#prbinfos > div.res").text()
+            # print(info)
+            result = re.compile(r'.*?(\d+.\d+).*?(\d+.\d+).*?').search(info)
+            problem[PROBLEM.TIME_LIMIT] = result.group(1)  # unit: s
+            problem[PROBLEM.MEMORY_LIMIT] = result.group(2)  # unit: mb
+            parse_problem_bady(problem, div_class)
             return
         except TimeoutException:
             print('TimeoutException')
@@ -104,14 +116,14 @@ def parse_whole_problem(problem):
         mongo.save_problem(problem)
 
 
-def parse_problem(problem, div_class):
+def parse_problem_bady(problem, div_class):
     html = driver.page_source
     doc = pq(html)
-    info = doc("#prbinfos > div.res").text()
+    # info = doc("#prbinfos > div.res").text()
     # print(info)
-    result = re.compile(r'.*?(\d+.\d+).*?(\d+.\d+).*?').search(info)
-    problem[PROBLEM.TIME_LIMIT] = result.group(1)  # unit: s
-    problem[PROBLEM.MEMORY_LIMIT] = result.group(2)  # unit: mb
+    # result = re.compile(r'.*?(\d+.\d+).*?(\d+.\d+).*?').search(info)
+    # problem[PROBLEM.TIME_LIMIT] = result.group(1)  # unit: s
+    # problem[PROBLEM.MEMORY_LIMIT] = result.group(2)  # unit: mb
     des = doc(".des")
     sec_headers = des.find(div_class['header']).items()
     cnt = 0
@@ -181,16 +193,31 @@ def parse_html_error_problem():
         get_problem_html(problem=i)
 
 
-judge_status_url = "http://lx.lanqiao.cn/status.page"
+def jump_to_problem_set_site(driver):
+    # 切换到跳转的页面--练习系统,judge login success by link_text
+    try:
+        set_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "#nav_yhdl_s140928 > dd:nth-child(2) > a"))
+        )
+    except Exception:
+        # jump to practice site error,not exist 试题集
+        traceback.print_exc()
+    set_btn.click()
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, ".table"))
+    )
+    html = driver.page_source
+    return html
 
 
 def main():
-    html = InSite(driver=driver).in_practice_set_site()
-    get_problem_set(html)
+    InSite(driver=driver, user=USERS[0]).in_practice_set_site()
+    # html = jump_to_problem_set_site(driver)
     # 获取了set之后，直接从数据库获取
     time.sleep(10)
-    check_problem_set()
-    # parse_problem_set(problem_set)
+    # check_problem_set()
+    for problem_set in mongo.problem_set_table.find():
+        parse_problem_set(problem_set)
     parse_html_error_problem()
     driver.quit()
 

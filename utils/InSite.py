@@ -12,10 +12,10 @@ base_practice_url = "http://lx.lanqiao.cn"
 
 
 class InSite:
-    def __init__(self, driver, username, password):
+    def __init__(self, driver, user):
         self.driver = driver
-        self.username = username
-        self.password = password
+        self.username = user.username
+        self.password = user.password
 
     def login_site(self):
         username = self.username

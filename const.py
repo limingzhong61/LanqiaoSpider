@@ -1,6 +1,7 @@
 class PROBLEM:
     ID = "id"
     TITLE = "title"
+    TAG = "tag"
     HREF = 'href'
     MEMORY_LIMIT = "memory_limit"
     TIME_LIMIT = "time_limit"
@@ -13,6 +14,8 @@ class PROBLEM:
     STATE = "state"
     VIP = "vip"
     DATA = "data"
+    PROBLEM_ID = "problem_id"
+    USER_ID = "user_id"
 
 
 class PROBLEM_SET:
@@ -35,9 +38,7 @@ class STATE_VALUE:
     PARSE_DATA_ERROR = "parse_data_error"
 
 
-
 class USER:
-
     USERNAME = 'username'
     PASSWORD = 'password'
 

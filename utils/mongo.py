@@ -84,10 +84,12 @@ def __update_all_problem_state__():
 
 if __name__ == "__main__":
     ""
-    # query = {PROBLEM.STATE: STATE_VALUE.DATA_SUCCESS}
+    # query = {PROBLEM.TIME_LIMIT: None}
     # print(query)
     # problems = problem_table.find(query)
     # print(problems)
     # for problem in problems:
-    #     problem[PROBLEM.STATE] = STATE_VALUE.FILE_SUCCESS
+    #     print(problem)
+    #     problem[PROBLEM.TIME_LIMIT] = 1.0
+    #     problem[PROBLEM.MEMORY_LIMIT] = 256.0
     #     problem_table.find_one_and_update({PROBLEM.ID: problem[PROBLEM.ID]}, {"$set": problem})

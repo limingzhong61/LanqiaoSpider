@@ -15,7 +15,6 @@ def logout(driver, wait_time):
         ActionChains(driver).move_to_element(logout_div).perform()
     except TimeoutException:
         print('''TimeoutException''')
-
     try:
         logout_btn = WebDriverWait(driver, wait_time).until(
             EC.element_to_be_clickable(

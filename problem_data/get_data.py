@@ -38,8 +38,7 @@ class GetData:
             except TimeoutException:
                 # print('''not find submit detail,that mean you don't try this problem''')
                 self.submit_problem(problem[PROBLEM.HREF])
-                self.get_problem_data(problem)
-                return False
+                return self.get_problem_data(problem)
             ## 下载按钮s
             ## 判断页面是否存在, even can search submisson info,but still juding.
             try:
@@ -51,8 +50,7 @@ class GetData:
             except TimeoutException:
                 print('''not find submit detail,that mean this submission still judging''')
                 # try again
-                self.get_problem_data(problem)
-                return False
+                return self.get_problem_data(problem)
             buttons = driver.find_elements(By.CSS_SELECTOR, "#detailcases > table > tbody > tr > td > a")
             try:
                 file_dict = {}
@@ -90,6 +88,7 @@ class GetData:
                 while confirm_all_downloaded(base_save_path + problem[PROBLEM.TITLE]) :
                     print("wait util download successful..... ")
                     time.sleep(1)
+                # normal over flag
                 if click_cnt == btn_len:
                     print("-----get problem data success-----")
                     problem[PROBLEM.STATE] = STATE_VALUE.FILE_SUCCESS
@@ -104,7 +103,8 @@ class GetData:
                 user.canTry = False
                 print("-----click error by lanqiao server, get problem data error-----")
             mongo.save_problem(problem)
-            return problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS
+            # normal end
+            return problem[PROBLEM.STATE] == STATE_VALUE.DATA_SUCCESS
         except TimeoutException:
             traceback.print_exc()
             problem[PROBLEM.STATE] = STATE_VALUE.DATA_ERROR
@@ -164,18 +164,17 @@ def try_with_each_user(problem):
         mongo.save_problem(problem)
         return True
     path = base_save_path + '\\' + title
-    # every new problem will create new dirver
-    driver = driver_util.get_driver_with_download_path(path)
-
     have_try = False
     for user in USERS:
-        if user.real_name != "朱文杰":
-            continue
-        print("tryTime:{},canTry:{}".format(user.tryTime, user.canTry))
+        # if user.real_name == "李明忠":
+        #     continue
+        print("{}: tryTime:{},canTry:{}".format(user.real_name,user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:
+            # every new problem will create new dirver
+            driver = driver_util.get_driver_with_download_path(path)
             print(user.real_name + ": begin--------------")
             # get data successful
-            InSite(driver=driver, username=user.username, password=user.password).in_practice_set_site()
+            InSite(driver=driver,user=user).in_practice_set_site()
             if GetData(driver=driver, path=path, user=user).get_problem_data(problem=problem):
                 # 休息一下，时间太短爬取会被封掉下载文件资格，
                 '''
@@ -187,7 +186,7 @@ def try_with_each_user(problem):
                     driver.quit()
                 except Exception:
                     traceback.print_exc()
-                    print("close driver exception 136")
+                    print("close driver exception")
                 return True
             else:
                 # close driver at here
@@ -206,9 +205,11 @@ def main():
         total = problem_set[PROBLEM_SET.TOTAL]
         begin_prefix = tag_dict[name]
         id_reg = {"$regex": "^" + begin_prefix}
-        success_query = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.FILE_SUCCESS}
-        print(success_query)
-        query_cnt = mongo.problem_table.count_documents(success_query)
+        query_cnt = 0
+        for state in [STATE_VALUE.FILE_SUCCESS,STATE_VALUE.DATA_SUCCESS,STATE_VALUE.PARSE_DATA_ERROR]:
+            success_query = {PROBLEM.ID: id_reg, PROBLEM.STATE: state}
+            print(success_query)
+            query_cnt += mongo.problem_table.count_documents(success_query)
         if int(total) == query_cnt:
             print(name + "total=" + str(total) + ": OK")
         else:
