@@ -28,7 +28,7 @@ class STATE_VALUE:
     # html解析失败
     HTML_ERROR = "html_error"
     # 判题数据获取失败，get file fail
-    DATA_ERROR = "data_error"
+    FILE_ERROR = "data_error"
     HTML_SUCCESS = "html_success"
     # get problem data to local file system
     FILE_SUCCESS = "file_success"

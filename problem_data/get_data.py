@@ -19,7 +19,7 @@ class GetData:
 
     def get_problem_data(self, problem):
         """
-        if get data successful
+        if get file successful
         :param problem:
         :return: bool
         """
@@ -85,29 +85,28 @@ class GetData:
                 # checking if total file equals  problem data
                 print(btn_len)
                 # have not download successful
-                while confirm_all_downloaded(base_save_path + problem[PROBLEM.TITLE]) :
+                while confirm_all_downloaded(base_save_path + problem[PROBLEM.TITLE]):
                     print("wait util download successful..... ")
                     time.sleep(1)
                 # normal over flag
                 if click_cnt == btn_len:
-                    print("-----get problem data success-----")
+                    print("-----get problem file success-----")
                     problem[PROBLEM.STATE] = STATE_VALUE.FILE_SUCCESS
                 else:
-                    # print("----------get problem data unknown error--------")
-                    print("tryTime run out,get file {}, not enough for {}".format(click_cnt, btn_len))
-                    problem[PROBLEM.STATE] = STATE_VALUE.DATA_ERROR
+                    print("tryTime run out,get file {},file not enough for {}".format(click_cnt, btn_len))
+                    problem[PROBLEM.STATE] = STATE_VALUE.FILE_ERROR
             except Exception as e:
                 traceback.print_exc()
                 # gain data error
-                problem[PROBLEM.STATE] = STATE_VALUE.DATA_ERROR
+                problem[PROBLEM.STATE] = STATE_VALUE.FILE_ERROR
                 user.canTry = False
                 print("-----click error by lanqiao server, get problem data error-----")
             mongo.save_problem(problem)
             # normal end
-            return problem[PROBLEM.STATE] == STATE_VALUE.DATA_SUCCESS
+            return problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS
         except TimeoutException:
             traceback.print_exc()
-            problem[PROBLEM.STATE] = STATE_VALUE.DATA_ERROR
+            problem[PROBLEM.STATE] = STATE_VALUE.FILE_ERROR
             print("get problem data error")
             mongo.save_problem(problem)
             return False
@@ -145,13 +144,28 @@ def confirm_all_downloaded(path):
     return cnt
 
 
-def try_with_each_user(problem):
-    """
-    try get full problem data with each user
-    :param problem:
-    :return: bool 是否能继续尝试
-    """
+def find_not_file_success_problems(problem_set):
+    name = problem_set[PROBLEM_SET.NAME]
+    begin_prefix = tag_dict[name]
+    id_reg = {"$regex": "^" + begin_prefix}
+    # first to solve data_error.
+    query1 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.FILE_ERROR}
+    query2 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}
+    queries = [query1, query2]
+    for query in queries:
+        print(query)
+        find_problems = mongo.problem_table.find(query)
+        return find_problems
+    else:
+        print("ok")
 
+
+def get_problem_file(problem):
+    """
+        try get full problem data with each user
+        :param problem:
+        :return: bool 是否能继续尝试
+        """
     # 获取爬取的题目
     title = problem[PROBLEM.TITLE]
     # 对文件和文件夹命名是不能使用以下9个字符：
@@ -164,17 +178,16 @@ def try_with_each_user(problem):
         mongo.save_problem(problem)
         return True
     path = base_save_path + '\\' + title
-    have_try = False
+    driver = driver_util.get_driver_with_download_path(path)
     for user in USERS:
         # if user.real_name == "李明忠":
-        #     continue
-        print("{}: tryTime:{},canTry:{}".format(user.real_name,user.tryTime, user.canTry))
+        # continue
+        print("{}: tryTime:{},canTry:{}".format(user.real_name, user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:
             # every new problem will create new dirver
-            driver = driver_util.get_driver_with_download_path(path)
             print(user.real_name + ": begin--------------")
-            # get data successful
-            InSite(driver=driver,user=user).in_practice_set_site()
+            # get file successful
+            InSite(driver=driver, user=user).in_practice_set_site()
             if GetData(driver=driver, path=path, user=user).get_problem_data(problem=problem):
                 # 休息一下，时间太短爬取会被封掉下载文件资格，
                 '''
@@ -195,38 +208,36 @@ def try_with_each_user(problem):
                 # logout
                 logout(driver=driver, wait_time=wait_time)
             print(user.real_name + ": over------------")
-            have_try = True
-    return have_try
+    # Can't get all problem file try with all users
+    else:
+        return False
+
+
+def judge_enough_problem_set(problem_set):
+    name = problem_set[PROBLEM_SET.NAME]
+    total = problem_set[PROBLEM_SET.TOTAL]
+    begin_prefix = tag_dict[name]
+    id_reg = {"$regex": "^" + begin_prefix}
+    query_cnt = 0
+    for state in [STATE_VALUE.FILE_SUCCESS, STATE_VALUE.DATA_SUCCESS, STATE_VALUE.PARSE_DATA_ERROR]:
+        success_query = {PROBLEM.ID: id_reg, PROBLEM.STATE: state}
+        print(success_query)
+        query_cnt += mongo.problem_table.count_documents(success_query)
+    judge_result = int(total) == query_cnt
+    if judge_result:
+        print(name + "total=" + str(total) + ": OK")
+    else:
+        print("problem_data: " + str(query_cnt) + "file not enough for " + str(total))
+    return judge_result
 
 
 def main():
     for problem_set in mongo.problem_set_table.find():
-        name = problem_set[PROBLEM_SET.NAME]
-        total = problem_set[PROBLEM_SET.TOTAL]
-        begin_prefix = tag_dict[name]
-        id_reg = {"$regex": "^" + begin_prefix}
-        query_cnt = 0
-        for state in [STATE_VALUE.FILE_SUCCESS,STATE_VALUE.DATA_SUCCESS,STATE_VALUE.PARSE_DATA_ERROR]:
-            success_query = {PROBLEM.ID: id_reg, PROBLEM.STATE: state}
-            print(success_query)
-            query_cnt += mongo.problem_table.count_documents(success_query)
-        if int(total) == query_cnt:
-            print(name + "total=" + str(total) + ": OK")
-        else:
-            print("problem_data: " + str(query_cnt) + " not enough for " + str(total))
-            # first to solve data_error.
-            query1 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.DATA_ERROR}
-            query2 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}
-            queries = [query1, query2]
-            for query in queries:
-                print(query)
-                find_problems = mongo.problem_table.find(query)
-                for find_problem in find_problems:
-                    print(find_problem)
-                    if not try_with_each_user(find_problem):
-                        return
-            else:
-                print("ok")
+        if not judge_enough_problem_set(problem_set):
+            for problem in find_not_file_success_problems(problem_set):
+                print(problem)
+                if not get_problem_file(problem):
+                    return
     else:
         print("ALL ok !!!!")
 

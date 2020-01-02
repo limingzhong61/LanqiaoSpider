@@ -2,6 +2,7 @@ import traceback
 
 from utils.mysql.mysql_db import *
 from utils.mongo import *
+import json
 
 
 def inset_to_mysql(problem):
@@ -13,10 +14,7 @@ def inset_to_mysql(problem):
                 PROBLEM.SAMPLE_INPUT, PROBLEM.SAMPLE_OUTPUT, PROBLEM.HINT,
                 PROBLEM.MEMORY_LIMIT, PROBLEM.TIME_LIMIT, PROBLEM.DATA]:
         text = str(problem.get(idx, ""))
-        if type(text) == type('1'):
-            if re.search('"', text):
-                text = re.sub('"', '\\"', text)
-                print("replace in {}".format(text))
+        text = dealTextToJSON(text)
 
         insert_problem.append(text)
     # return
@@ -48,41 +46,56 @@ def find_in_mysql(title):
         mysql_cursor.execute(sql)
         # 获取所有记录列表
         results = mysql_cursor.fetchall()
-        return results
         print(results)
+        return results
     except:
         traceback.print_exc()
         print("Error: unable to fetch data")
 
 
+def dealTextToJSON(text):
+    print(text)
+    # in db \n need change to \\n
+    if re.search(r"\\n", text):
+        print(text)
+        text = re.sub(r"\\n", r"\\\\n", text)
+        print("replace in {}".format(text))
+    if re.search("'", text):
+        print(text)
+        text = re.sub("'", "\\'", text)
+        print("replace in {}".format(text))
+    return text
+
+
 def update_in_mysql(problem):
+
     title = problem[PROBLEM.TITLE]
     text = str(problem.get(PROBLEM.DATA, ""))
-    if type(text) == type('1'):
-        if re.search('"', text):
-            text = re.sub('"', '\\"', text)
-            print("replace in {}".format(text))
+    text = dealTextToJSON(text)
+    print(text)
+    # return
     # SQL 查询语句
-    sql = """UPDATE problem set judge_data = "%s" where title = '%s'""" % (text, title)
+    sql = """UPDATE problem set judge_data = '%s' where title = '%s'""" % (text,title)
+    print(sql)
     try:
         # 执行SQL语句
         mysql_cursor.execute(sql)
         # 提交到数据库执行
         mysql_db.commit()
-        print("{} update successful".format(title))
+        # print("{} update successful".format(title))
     except:
         # 发生错误时回滚
+        print(sql)
         mysql_db.rollback()
 
 
-if __name__ == "__main__":
+def main():
     # 数据成功保存在数据困中的
     query = {PROBLEM.STATE: STATE_VALUE.DATA_SUCCESS}
     problems = problem_table.find(query)
     cnt = 0
     too_big = ["Maze", "十六进制转八进制"]
     for problem in problems:
-        # update_in_mysql(problem)
         cnt += 1
         title = problem[PROBLEM.TITLE]
         big_flag = False
@@ -93,13 +106,20 @@ if __name__ == "__main__":
                 break
         if big_flag:
             continue
-
-        if find_in_mysql(title):
-            print("{} is already in mysql table".format(title))
-        else:
-            problem[PROBLEM.USER_ID] = 1
-            inset_to_mysql(problem)
-            print("{} inserts in mysql table".format(title))
+        # if problem[PROBLEM.TITLE] == "序列求和":
+        update_in_mysql(problem)
+        # print(problem)
+        # problem = find_in_mysql(title)
+        # if problem:
+        #     print("{} is already in mysql table".format(title))
+        # else:
+        #     problem[PROBLEM.USER_ID] = 1
+        #     inset_to_mysql(problem)
+        #     print("{} inserts in mysql table".format(title))
     # print("")
     print("total data success = {}".format(cnt))
     mysql_db.close()
+
+
+if __name__ == "__main__":
+    main()

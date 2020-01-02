@@ -1,5 +1,5 @@
 import traceback
-
+import json
 from gevent import os
 
 from const import PROBLEM, STATE_VALUE
@@ -40,13 +40,16 @@ def save_file_to_db(query, problem):
         # 解析成功
         else:
             # print(data_dict)
-            problem[PROBLEM.DATA] = data_list
+            # data save in db is a json string
+            data_json = json.dumps(data_list)
+            problem[PROBLEM.DATA] = data_json
+            # print(data_json)
             problem[PROBLEM.STATE] = STATE_VALUE.DATA_SUCCESS
             # print(problem)
         new_problem = {"$set": problem}
         try:
-            print(problem)
             problem_table.find_one_and_update(query, new_problem)
+            print(problem)
         except Exception:
             traceback.print_exc()
             problem[PROBLEM.DATA] = ""
@@ -63,10 +66,13 @@ def main():
             title = d
             query = {PROBLEM.TITLE: title}
             problem = problem_table.find_one(query)
-            # print(problem)
+            print(problem)
             if problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS or problem[PROBLEM.STATE] == STATE_VALUE.DATA_SUCCESS:
                 # print(STATE_VALUE.FILE_SUCCESS)
                 save_file_to_db(query, problem)
+            # update value
+            # if problem[PROBLEM.STATE] == STATE_VALUE.DATA_SUCCESS:
+            #     save_file_to_db(query, problem)
 
 
 if __name__ == "__main__":

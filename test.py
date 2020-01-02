@@ -1,13 +1,8 @@
 import os
 import re
 
-for root, dirs, files in os.walk(r'E:\problem_data\时间转换'):
-    for file_name in files:
-        # 删除有可能 redundant file eg: input1 (1).txt
-        matched = re.match(r".*?\(\d+\)", file_name)
-        if matched:
-            full_name = os.path.join(root, file_name)
-            print(full_name)
-            os.remove(full_name)
-            # print(matched)
-        # print(os.path.join(root, file_name))
+if __name__ == "__main__":
+    text = "[[\"1\\n\", \"1\\n\"], [\"10\\n\", \"55\\n\"], [\"100\\n\", \"5050\\n\"], [\"1000\\n\", \"500500\\n\"], [\"10000\\n\", \"50005000\\n\"], [\"100000\\n\", \"5000050000\\n\"], [\"1000000\\n\", \"500000500000\\n\"], [\"10000000\\n\", \"50000005000000\\n\"], [\"100000000\\n\", \"5000000050000000\\n\"], [\"1000000000\\n\", \"500000000500000000\\n\"]]"
+    print("{}".format(text))
+    print(re.search(r"\n","\n\\"))
+    print(re.sub(r"\n",r"\\n","\n\\"))
