@@ -11,11 +11,15 @@ class PROBLEM:
     FORMAT_INPUT = "format_input"
     FORMAT_OUTPUT = "format_output"
     HINT = "hint"
-    STATE = "state"
     VIP = "vip"
     DATA = "data"
     PROBLEM_ID = "problem_id"
     USER_ID = "user_id"
+    DATA_STATE = "state"
+    # status of get problem info
+    INFO_STATUS = "info_status"
+    #  for not parse success problem
+    HTML = "html"
 
 
 class PROBLEM_SET:
@@ -36,6 +40,12 @@ class STATE_VALUE:
     # 数据成功保存在数据库
     DATA_SUCCESS = "data_success"
     PARSE_DATA_ERROR = "parse_data_error"
+
+
+class INFO_STATUS_VALUE:
+    # html解析失败
+    HTML_ERROR = "html_error"
+    HTML_SUCCESS = "html_success"
 
 
 class USER:

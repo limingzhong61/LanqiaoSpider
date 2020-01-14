@@ -4,7 +4,7 @@ from gevent import os
 
 from const import PROBLEM, STATE_VALUE
 from problem_data.data_config import *
-from utils.mongo import problem_table
+from utils.mongo_util import problem_table
 
 
 def save_file_to_db(query, problem):
@@ -33,7 +33,7 @@ def save_file_to_db(query, problem):
                     data.append(data_dict[name])
                     # print("data_list add:{}".format(name))
                 except KeyError:
-                    problem[PROBLEM.STATE] = STATE_VALUE.PARSE_DATA_ERROR
+                    problem[PROBLEM.DATA_STATE] = STATE_VALUE.PARSE_DATA_ERROR
                     print("file_error... jumping：{}".format(path+file_name))
                     return
             data_list.append(data)
@@ -44,7 +44,7 @@ def save_file_to_db(query, problem):
             data_json = json.dumps(data_list)
             problem[PROBLEM.DATA] = data_json
             # print(data_json)
-            problem[PROBLEM.STATE] = STATE_VALUE.DATA_SUCCESS
+            problem[PROBLEM.DATA_STATE] = STATE_VALUE.DATA_SUCCESS
             # print(problem)
         new_problem = {"$set": problem}
         try:
@@ -53,7 +53,7 @@ def save_file_to_db(query, problem):
         except Exception:
             traceback.print_exc()
             problem[PROBLEM.DATA] = ""
-            problem[PROBLEM.STATE] = STATE_VALUE.PARSE_DATA_ERROR
+            problem[PROBLEM.DATA_STATE] = STATE_VALUE.PARSE_DATA_ERROR
             print("judge_data to big!!!!!: {}".format(name))
             problem_table.find_one_and_update(query, new_problem)
 
@@ -67,7 +67,7 @@ def main():
             query = {PROBLEM.TITLE: title}
             problem = problem_table.find_one(query)
             print(problem)
-            if problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS or problem[PROBLEM.STATE] == STATE_VALUE.DATA_SUCCESS:
+            if problem[PROBLEM.DATA_STATE] == STATE_VALUE.FILE_SUCCESS or problem[PROBLEM.DATA_STATE] == STATE_VALUE.DATA_SUCCESS:
                 # print(STATE_VALUE.FILE_SUCCESS)
                 save_file_to_db(query, problem)
             # update value

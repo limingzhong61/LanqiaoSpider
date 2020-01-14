@@ -1,8 +1,12 @@
-import os
 import re
 
-if __name__ == "__main__":
-    text = "[[\"1\\n\", \"1\\n\"], [\"10\\n\", \"55\\n\"], [\"100\\n\", \"5050\\n\"], [\"1000\\n\", \"500500\\n\"], [\"10000\\n\", \"50005000\\n\"], [\"100000\\n\", \"5000050000\\n\"], [\"1000000\\n\", \"500000500000\\n\"], [\"10000000\\n\", \"50000005000000\\n\"], [\"100000000\\n\", \"5000000050000000\\n\"], [\"1000000000\\n\", \"500000000500000000\\n\"]]"
-    print("{}".format(text))
-    print(re.search(r"\n","\n\\"))
-    print(re.sub(r"\n",r"\\n","\n\\"))
+from utils.mysql.change_to_mysql import deal_text_to_json
+
+# if re.search(r"\n", text, re.S):
+#     print(text)
+#     text = re.sub(r"\n", r"\\\\n", text)
+#     print("replace in {}".format(text))
+
+text = "a\tb\nc'"
+
+print(text)

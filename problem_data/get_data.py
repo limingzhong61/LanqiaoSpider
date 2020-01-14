@@ -6,7 +6,7 @@ import traceback
 from config import *
 from const import *
 from problem_data.data_config import base_search_url, wait_time, base_save_path
-from utils import driver_util, mongo
+from utils import driver_util, mongo_util
 from utils.InSite import *
 from utils.Logout import logout
 
@@ -91,24 +91,24 @@ class GetData:
                 # normal over flag
                 if click_cnt == btn_len:
                     print("-----get problem file success-----")
-                    problem[PROBLEM.STATE] = STATE_VALUE.FILE_SUCCESS
+                    problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_SUCCESS
                 else:
                     print("tryTime run out,get file {},file not enough for {}".format(click_cnt, btn_len))
-                    problem[PROBLEM.STATE] = STATE_VALUE.FILE_ERROR
+                    problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_ERROR
             except Exception as e:
                 traceback.print_exc()
                 # gain data error
-                problem[PROBLEM.STATE] = STATE_VALUE.FILE_ERROR
+                problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_ERROR
                 user.canTry = False
                 print("-----click error by lanqiao server, get problem data error-----")
-            mongo.save_problem(problem)
+            mongo_util.save_problem(problem)
             # normal end
-            return problem[PROBLEM.STATE] == STATE_VALUE.FILE_SUCCESS
+            return problem[PROBLEM.DATA_STATE] == STATE_VALUE.FILE_SUCCESS
         except TimeoutException:
             traceback.print_exc()
-            problem[PROBLEM.STATE] = STATE_VALUE.FILE_ERROR
+            problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_ERROR
             print("get problem data error")
-            mongo.save_problem(problem)
+            mongo_util.save_problem(problem)
             return False
 
     def submit_problem(self, href):
@@ -149,15 +149,11 @@ def find_not_file_success_problems(problem_set):
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
     # first to solve data_error.
-    query1 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.FILE_ERROR}
-    query2 = {PROBLEM.ID: id_reg, PROBLEM.STATE: STATE_VALUE.HTML_SUCCESS}
-    queries = [query1, query2]
-    for query in queries:
-        print(query)
-        find_problems = mongo.problem_table.find(query)
-        return find_problems
-    else:
-        print("ok")
+    # query1 = {}
+    # query2 = {PROBLEM.ID: id_reg, PROBLEM.STATE: }
+    # queries = [query1, query2]
+    query = {PROBLEM.ID: id_reg, PROBLEM.DATA_STATE: {"$in": [STATE_VALUE.FILE_ERROR, STATE_VALUE.HTML_SUCCESS]}}
+    return mongo_util.problem_table.find(query)
 
 
 def get_problem_file(problem):
@@ -172,16 +168,16 @@ def get_problem_file(problem):
     # / \ : * " < > | ？
     result = re.search(r'[/\:*"<>|？]', title)
     if result:
-        problem[PROBLEM.STATE] = STATE_VALUE.FILE_NAME_ERROR
+        problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_NAME_ERROR
         print(" error,file Name has a illegal character: {}".format(result))
         print("get problem data error")
-        mongo.save_problem(problem)
+        mongo_util.save_problem(problem)
         return True
     path = base_save_path + '\\' + title
     driver = driver_util.get_driver_with_download_path(path)
     for user in USERS:
         # if user.real_name == "李明忠":
-        # continue
+        #         continue
         print("{}: tryTime:{},canTry:{}".format(user.real_name, user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:
             # every new problem will create new dirver
@@ -218,21 +214,19 @@ def judge_enough_problem_set(problem_set):
     total = problem_set[PROBLEM_SET.TOTAL]
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
-    query_cnt = 0
-    for state in [STATE_VALUE.FILE_SUCCESS, STATE_VALUE.DATA_SUCCESS, STATE_VALUE.PARSE_DATA_ERROR]:
-        success_query = {PROBLEM.ID: id_reg, PROBLEM.STATE: state}
-        print(success_query)
-        query_cnt += mongo.problem_table.count_documents(success_query)
+    success_query = {PROBLEM.ID: id_reg, PROBLEM.DATA_STATE: {"$in" : [STATE_VALUE.FILE_SUCCESS, STATE_VALUE.DATA_SUCCESS, STATE_VALUE.PARSE_DATA_ERROR]}}
+    print(success_query)
+    query_cnt = mongo_util.problem_table.count_documents(success_query)
     judge_result = int(total) == query_cnt
     if judge_result:
         print(name + "total=" + str(total) + ": OK")
     else:
-        print("problem_data: " + str(query_cnt) + "file not enough for " + str(total))
+        print("problem_data: " + str(query_cnt) + " file not enough for " + str(total))
     return judge_result
 
 
 def main():
-    for problem_set in mongo.problem_set_table.find():
+    for problem_set in mongo_util.problem_set_table.find():
         if not judge_enough_problem_set(problem_set):
             for problem in find_not_file_success_problems(problem_set):
                 print(problem)
