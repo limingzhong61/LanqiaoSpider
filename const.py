@@ -1,4 +1,4 @@
-class PROBLEM:
+class Problem:
     ID = "id"
     TITLE = "title"
     TAG = "tag"
@@ -15,25 +15,22 @@ class PROBLEM:
     DATA = "data"
     PROBLEM_ID = "problem_id"
     USER_ID = "user_id"
-    DATA_STATE = "state"
+    DATA_STATUS = "state"
     # status of get problem info
     INFO_STATUS = "info_status"
     #  for not parse success problem
     HTML = "html"
 
 
-class PROBLEM_SET:
+class ProblemSet:
     NAME = "name"
     HREF = 'href'
     TOTAL = 'total'
 
 
-class STATE_VALUE:
-    # html解析失败
-    HTML_ERROR = "html_error"
+class StateValue:
     # 判题数据获取失败，get file fail
     FILE_ERROR = "data_error"
-    HTML_SUCCESS = "html_success"
     # get problem data to local file system
     FILE_SUCCESS = "file_success"
     FILE_NAME_ERROR = "file_name_error"
@@ -42,13 +39,13 @@ class STATE_VALUE:
     PARSE_DATA_ERROR = "parse_data_error"
 
 
-class INFO_STATUS_VALUE:
+class InfoStatusValue:
     # html解析失败
     HTML_ERROR = "html_error"
     HTML_SUCCESS = "html_success"
 
 
-class USER:
+class User:
     USERNAME = 'username'
     PASSWORD = 'password'
 

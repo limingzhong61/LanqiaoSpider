@@ -7,8 +7,8 @@ from config import *
 from const import *
 from problem_data.data_config import base_search_url, wait_time, base_save_path
 from utils import driver_util, mongo_util
-from utils.InSite import *
-from utils.Logout import logout
+from utils.in_site import *
+from utils.logout import logout
 
 
 class GetData:
@@ -24,11 +24,14 @@ class GetData:
         :return: bool
         """
         driver = self.driver
-        title = problem[PROBLEM.TITLE]
+        driver.maximize_window()  # 将浏览器最大化显示，不然不能检测到题目详情的链接
+        title = problem[Problem.TITLE]
         user = self.user
         driver.get(base_search_url + title)
         try:
             try:
+                # "#status-list > tr:nth-child(1) > td:nth-child(11) > a"
+                # "#status-list > tr:nth-child(1) > td:nth-child(11) > a"
                 detail_link = WebDriverWait(driver, wait_time).until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR,
@@ -36,22 +39,29 @@ class GetData:
                 )
                 detail_link.click()
             except TimeoutException:
-                # print('''not find submit detail,that mean you don't try this problem''')
-                self.submit_problem(problem[PROBLEM.HREF])
+                print('''not find submit item,that mean you don't try this problem''')
+                # return
+                self.submit_problem(problem[Problem.HREF])
                 return self.get_problem_data(problem)
             ## 下载按钮s
             ## 判断页面是否存在, even can search submisson info,but still juding.
             try:
+
                 WebDriverWait(driver, wait_time).until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR,
-                         "#detailcases > table > tbody > tr:nth-child(2) > td:nth-child(6) > a:nth-child(1)"))
+                         "body > div.main > div > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"))
                 )
+                # "body > div.main > div > table > tbody > tr:nth-child(12) > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"
             except TimeoutException:
                 print('''not find submit detail,that mean this submission still judging''')
                 # try again
                 return self.get_problem_data(problem)
-            buttons = driver.find_elements(By.CSS_SELECTOR, "#detailcases > table > tbody > tr > td > a")
+            buttons = driver.find_elements(By.CSS_SELECTOR,
+                                           "body > div.main > div > table > tbody > tr > td > table > tbody  a")
+
+            # print(len(buttons))
+            # return
             try:
                 file_dict = {}
                 for root, dirs, files in os.walk(self.path):
@@ -62,7 +72,8 @@ class GetData:
                     "输出": 'output'
                 }
                 click_cnt = 0
-                btn_len = len(buttons)
+                file_cnt = len(buttons)
+                # can full try,use it then can't try new one
                 for btn in buttons:
                     lick_text = btn.get_attribute('onclick')
                     lick_num = re.search(r'\d+', lick_text).group(0)
@@ -76,57 +87,58 @@ class GetData:
                         btn.click()
                         self.user.tryTime -= 1
                         if self.user.tryTime == 0:
-                            print("user {} tryTime run out".format(self.user.real_name), end="")
+                            print(" user {} tryTime run out".format(self.user.real_name), end=" ")
                             break
                         time.sleep(1)
                     # confirm have this file
                     click_cnt += 1
-                    print("            rate:{}/{}".format(click_cnt, btn_len))
+                    print("            rate:{}/{}".format(click_cnt, file_cnt))
                 # checking if total file equals  problem data
-                print(btn_len)
                 # have not download successful
-                while confirm_all_downloaded(base_save_path + problem[PROBLEM.TITLE]):
+                while confirm_all_downloaded(base_save_path + problem[Problem.TITLE]):
                     print("wait util download successful..... ")
                     time.sleep(1)
                 # normal over flag
-                if click_cnt == btn_len:
+                if click_cnt == file_cnt:
                     print("-----get problem file success-----")
-                    problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_SUCCESS
+                    problem[Problem.DATA_STATUS] = StateValue.FILE_SUCCESS
                 else:
-                    print("tryTime run out,get file {},file not enough for {}".format(click_cnt, btn_len))
-                    problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_ERROR
+                    print("tryTime run out,get file {},file not enough for {}".format(click_cnt, file_cnt))
+                    problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
             except Exception as e:
                 traceback.print_exc()
                 # gain data error
-                problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_ERROR
+                problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
                 user.canTry = False
                 print("-----click error by lanqiao server, get problem data error-----")
             mongo_util.save_problem(problem)
             # normal end
-            return problem[PROBLEM.DATA_STATE] == STATE_VALUE.FILE_SUCCESS
+            return problem[Problem.DATA_STATUS] == StateValue.FILE_SUCCESS
         except TimeoutException:
             traceback.print_exc()
-            problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_ERROR
+            problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
             print("get problem data error")
             mongo_util.save_problem(problem)
             return False
 
     def submit_problem(self, href):
         driver = self.driver
-        #         http://lx.lanqiao.cn/submit.page?gpid=T71
-        #         http://lx.lanqiao.cn/problem.page?gpid=T71
-        href = href.replace("problem", "submit")
-        # print(href)
-        driver.get(base_practice_url + href)
-        try:
-            submit_btn = WebDriverWait(driver, wait_time).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR,
-                     "body > div.bodydiv > div.submitform > div.subrow > input"))
-            )
-            submit_btn.click()
-        except TimeoutException:
-            print('''submit problem error''')
+        # get pid
+        pattern = re.compile("/??gpid=(.*)")
+        search = re.search(pattern, href)
+        current_pid = search.group(1)
+        submit_script = """var currentGPID = "%s"
+            var vcode = "int main() { return 0;}", vlang = "CPP";
+            $.post("/test.SubmitCode.dt", {gpid:currentGPID,lang:vlang,code:vcode}, function(obj){
+            setData("lastlang", vlang);
+            if (""+obj["ret"]=="1")
+                window.location.href = "/status.page";
+            else
+                alert(obj["msg"]);
+            }, "json");""" % current_pid
+        # print(submit_script)
+        driver.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+        driver.execute_script(submit_script)
 
 
 def confirm_all_downloaded(path):
@@ -145,15 +157,13 @@ def confirm_all_downloaded(path):
 
 
 def find_not_file_success_problems(problem_set):
-    name = problem_set[PROBLEM_SET.NAME]
+    name = problem_set[ProblemSet.NAME]
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
     # first to solve data_error.
-    # query1 = {}
-    # query2 = {PROBLEM.ID: id_reg, PROBLEM.STATE: }
-    # queries = [query1, query2]
-    query = {PROBLEM.ID: id_reg, PROBLEM.DATA_STATE: {"$in": [STATE_VALUE.FILE_ERROR, STATE_VALUE.HTML_SUCCESS]}}
-    return mongo_util.problem_table.find(query)
+    query = {"$or": [{Problem.ID: id_reg, Problem.DATA_STATUS: StateValue.FILE_ERROR},
+                     {Problem.ID: id_reg, Problem.DATA_STATUS: InfoStatusValue.HTML_SUCCESS}]}
+    return mongo_util.problem_collection.find(query)
 
 
 def get_problem_file(problem):
@@ -163,12 +173,12 @@ def get_problem_file(problem):
         :return: bool 是否能继续尝试
         """
     # 获取爬取的题目
-    title = problem[PROBLEM.TITLE]
+    title = problem[Problem.TITLE]
     # 对文件和文件夹命名是不能使用以下9个字符：
     # / \ : * " < > | ？
     result = re.search(r'[/\:*"<>|？]', title)
     if result:
-        problem[PROBLEM.DATA_STATE] = STATE_VALUE.FILE_NAME_ERROR
+        problem[Problem.DATA_STATUS] = StateValue.FILE_NAME_ERROR
         print(" error,file Name has a illegal character: {}".format(result))
         print("get problem data error")
         mongo_util.save_problem(problem)
@@ -210,13 +220,14 @@ def get_problem_file(problem):
 
 
 def judge_enough_problem_set(problem_set):
-    name = problem_set[PROBLEM_SET.NAME]
-    total = problem_set[PROBLEM_SET.TOTAL]
+    name = problem_set[ProblemSet.NAME]
+    total = problem_set[ProblemSet.TOTAL]
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
-    success_query = {PROBLEM.ID: id_reg, PROBLEM.DATA_STATE: {"$in" : [STATE_VALUE.FILE_SUCCESS, STATE_VALUE.DATA_SUCCESS, STATE_VALUE.PARSE_DATA_ERROR]}}
+    success_query = {Problem.ID: id_reg, Problem.DATA_STATUS: {
+        "$in": [StateValue.FILE_SUCCESS, StateValue.DATA_SUCCESS, StateValue.PARSE_DATA_ERROR]}}
     print(success_query)
-    query_cnt = mongo_util.problem_table.count_documents(success_query)
+    query_cnt = mongo_util.problem_collection.count_documents(success_query)
     judge_result = int(total) == query_cnt
     if judge_result:
         print(name + "total=" + str(total) + ": OK")
@@ -226,7 +237,7 @@ def judge_enough_problem_set(problem_set):
 
 
 def main():
-    for problem_set in mongo_util.problem_set_table.find():
+    for problem_set in mongo_util.problem_set_collection.find():
         if not judge_enough_problem_set(problem_set):
             for problem in find_not_file_success_problems(problem_set):
                 print(problem)

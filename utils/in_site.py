@@ -47,46 +47,43 @@ class InSite:
                     (By.CSS_SELECTOR, "#l-go"))
             )
             confirm_button.click()
-        except TimeoutException as e:
+        except TimeoutException:
             print('TimeoutException')
             # return in_site()
 
     def in_practice_set_site(self):
-        try:
-            self.login_site()
-            # 需要时间等待
-            time.sleep(3)
-            driver = self.driver
+        self.login_site()
+        # 需要时间等待
+        time.sleep(3)
+        driver = self.driver
+        # 不能直接通过浏览器地址栏访问，只能通过点击才能保持访问正常
+        # driver.get(practice_set_url)
 
-            # 不能直接通过浏览器地址栏访问，只能通过点击才能保持访问正常
-            # driver.get(practice_set_url)
+        try:
             site_link = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "body > div.navigation > ul > li:nth-child(5) > a"))
             )
             site_link.click()
-            # 切换到跳转的页面--练习系统,judge login success by link_text
-            try:
-                driver.switch_to.window(driver.window_handles[1])
-                login_success = WebDriverWait(driver, 10).until(
-                    EC.text_to_be_present_in_element((By.CSS_SELECTOR, "#nav_yhdl_s140928 > dd:nth-child(2) > a"),
-                                                     "试题集")
-                )
-            except Exception:
-                # jump to practice site error,not exist 试题集
-                # close error window
-                driver.close()
-            #  return when login success
-            if login_success:
-                return login_success
-            # set_link =
-            # set_link.click()
-            # WebDriverWait(driver, 10).until(
-            #     EC.presence_of_element_located((By.CSS_SELECTOR, ".table"))
-            # )
-            # html = driver.page_source
-            # return html
-        except TimeoutException as e:
+        except TimeoutException:
             print('TimeoutException')
-
             # try again
             self.in_practice_set_site()
+        # 切换到跳转的页面--练习系统,judge login success by link_text
+        # login_success = False
+        try:
+            driver.switch_to.window(driver.window_handles[1])
+            login_success = WebDriverWait(driver, 10).until(
+                EC.text_to_be_present_in_element((By.CSS_SELECTOR, "body > div.navigation.mainmenu > div > ul > li:nth-child(2) > a"),
+                                                 "试题集")
+            )
+        except TimeoutException:
+            # jump to practice site error,not exist 试题集
+            # close error window
+            driver.close()
+            print('TimeoutException')
+            # try again
+            self.in_practice_set_site()
+
+            #  return when login success
+        if login_success:
+            return login_success

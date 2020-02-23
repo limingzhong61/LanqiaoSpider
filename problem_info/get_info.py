@@ -14,7 +14,7 @@ from problem_info.info_util import parse_problem
 from utils import mongo_util
 from config import *
 from const import *
-from utils.InSite import InSite
+from utils.in_site import InSite
 
 driver = webdriver.Chrome()
 wait_time = 8
@@ -53,6 +53,9 @@ def parse_problem_set(problem_set):
                 'tag': item.find('td').eq(2).text(),
                 'href': item.find('td').eq(1).find('a').attr('href')
             }
+            # title maybe have some prefix
+            title = problem[Problem.TITLE]
+            problem[Problem.TITLE] = title.replace("VIP试题 ", "").strip()
             # 已经解析成功不需要访问
             # if mongo.problem_table.find_one({PROBLEM.ID: problem[PROBLEM.ID], PROBLEM.INFO_STATUS: INFO_STATUS.HTML_SUCCESS}):
             #             #     continue
@@ -67,19 +70,19 @@ def parse_problem_set(problem_set):
 
 
 def check_problem_set():
-    query = {PROBLEM.INFO_STATUS: INFO_STATUS_VALUE.HTML_ERROR}
-    for i in mongo_util.problem_table.find(query):
+    query = {Problem.INFO_STATUS: InfoStatusValue.HTML_ERROR}
+    for i in mongo_util.problem_collection.find(query):
         print(i)
-    for problem_set in mongo_util.problem_set_table.find():
-        name = problem_set[PROBLEM_SET.NAME]
-        total = problem_set[PROBLEM_SET.TOTAL]
+    for problem_set in mongo_util.problem_set_collection.find():
+        name = problem_set[ProblemSet.NAME]
+        total = problem_set[ProblemSet.TOTAL]
         query = {"id": {"$regex": "^" + tag_dict[name]}}
         print(query)
-        query_cnt = mongo_util.problem_table.count_documents(query)
+        query_cnt = mongo_util.problem_collection.count_documents(query)
         if int(total) == query_cnt:
             print(name + "total: OK")
-            query = {"id": {"$regex": "^" + tag_dict[name]}, PROBLEM.INFO_STATUS: INFO_STATUS_VALUE.HTML_ERROR}
-            find_errors = mongo_util.problem_table.find(query)
+            query = {"id": {"$regex": "^" + tag_dict[name]}, Problem.INFO_STATUS: InfoStatusValue.HTML_ERROR}
+            find_errors = mongo_util.problem_collection.find(query)
             if find_errors:
                 for i in find_errors:
                     print(i)
@@ -90,8 +93,8 @@ def check_problem_set():
             print(str(query_cnt) + " not enough for " + str(total))
             query = {"id": {"$regex": "^" + tag_dict[name]}}
         di_dict = {}
-        for i in mongo_util.problem_table.find(query).sort(PROBLEM.ID):
-            id = i[PROBLEM.ID]
+        for i in mongo_util.problem_collection.find(query).sort(Problem.ID):
+            id = i[Problem.ID]
             val = re.compile(r'.*?(\d+).*?').search(id).group(1)
             di_dict[int(val)] = True
         for i in range(1, query_cnt + 1):
@@ -123,7 +126,7 @@ def main():
     # html = jump_to_problem_set_site(driver)
     # 获取了set之后，直接从数据库获取
     time.sleep(10)
-    for problem_set in mongo_util.problem_set_table.find():
+    for problem_set in mongo_util.problem_set_collection.find():
         print(problem_set)
         parse_problem_set(problem_set)
     driver.quit()
