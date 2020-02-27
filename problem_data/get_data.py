@@ -94,8 +94,8 @@ class GetData:
                     click_cnt += 1
                     print("            rate:{}/{}".format(click_cnt, file_cnt))
                 # checking if total file equals  problem data
-                # have not download successful
-                while confirm_all_downloaded(base_save_path + problem[Problem.TITLE]):
+                # have not download successful,don't forget '/'
+                while confirm_all_downloaded(base_save_path + "/" + problem[Problem.TITLE]):
                     print("wait util download successful..... ")
                     time.sleep(1)
                 # normal over flag
@@ -186,8 +186,9 @@ def get_problem_file(problem):
     path = base_save_path + '\\' + title
     driver = driver_util.get_driver_with_download_path(path)
     for user in USERS:
-        # if user.real_name == "李明忠":
-        #         continue
+        "朱文杰"
+        if user.real_name != "朱文杰":
+            continue
         print("{}: tryTime:{},canTry:{}".format(user.real_name, user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:
             # every new problem will create new dirver

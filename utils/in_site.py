@@ -28,23 +28,19 @@ class InSite:
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "#btnShowLoginDialog"))
             )
             login_button.click()
-            change_input = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "#pawLoginOpen"))
-            )
-            change_input.click()
             username_input = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "#l-phone"))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(1) > div > div > span > input"))
             )
             username_input.send_keys(username)
 
             pwd_input = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, "#l-paw"))
+                    (By.CSS_SELECTOR, "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(2) > div > div > span > input"))
             )
             pwd_input.send_keys(password)
             confirm_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, "#l-go"))
+                    (By.CSS_SELECTOR, "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(4) > div > div > span > button"))
             )
             confirm_button.click()
         except TimeoutException:
