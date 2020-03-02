@@ -6,7 +6,7 @@ import traceback
 from config import *
 from const import *
 from problem_data.data_config import base_search_url, wait_time, base_save_path
-from utils import driver_util, mongo_util
+from utils import mongo_util
 from utils.in_site import *
 from utils.logout import logout
 
@@ -29,16 +29,8 @@ class GetData:
         user = self.user
         driver.get(base_search_url + title)
         try:
-            try:
-                # "#status-list > tr:nth-child(1) > td:nth-child(11) > a"
-                # "#status-list > tr:nth-child(1) > td:nth-child(11) > a"
-                detail_link = WebDriverWait(driver, wait_time).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "#status-list > tr:nth-child(1) > td:nth-child(11) > a"))
-                )
-                detail_link.click()
-            except TimeoutException:
+            # detail_link.click()
+            if not click_by_selector(driver, "#status-list > tr:nth-child(1) > td:nth-child(11) > a"):
                 print('''not find submit item,that mean you don't try this problem''')
                 # return
                 self.submit_problem(problem[Problem.HREF])
@@ -87,7 +79,7 @@ class GetData:
                         btn.click()
                         self.user.tryTime -= 1
                         if self.user.tryTime == 0:
-                            print(" user {} tryTime run out".format(self.user.real_name), end=" ")
+                            print("\n user {} tryTime run out".format(self.user.real_name))
                             break
                         time.sleep(1)
                     # confirm have this file
@@ -186,9 +178,9 @@ def get_problem_file(problem):
     path = base_save_path + '\\' + title
     driver = driver_util.get_driver_with_download_path(path)
     for user in USERS:
-        "朱文杰"
-        if user.real_name != "朱文杰":
-            continue
+        # 朱文杰
+        # if user.real_name == "朱文杰":
+        #     continue
         print("{}: tryTime:{},canTry:{}".format(user.real_name, user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:
             # every new problem will create new dirver

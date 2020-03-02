@@ -14,6 +14,7 @@ from problem_info.info_util import parse_problem
 from utils import mongo_util
 from config import *
 from const import *
+from utils.brower_util import click_by_selector
 from utils.in_site import InSite
 
 driver = webdriver.Chrome()
@@ -106,14 +107,8 @@ def check_problem_set():
 
 def jump_to_problem_set_site(driver):
     # 切换到跳转的页面--练习系统,judge login success by link_text
-    try:
-        set_btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, "#nav_yhdl_s140928 > dd:nth-child(2) > a"))
-        )
-    except Exception:
-        # jump to practice site error,not exist 试题集
-        traceback.print_exc()
-    set_btn.click()
+    #set_btn.click()
+    click_by_selector(driver,"#nav_yhdl_s140928 > dd:nth-child(2) > a")
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, ".table"))
     )
