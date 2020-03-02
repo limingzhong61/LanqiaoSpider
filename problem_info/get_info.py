@@ -1,6 +1,5 @@
 # coding:utf-8
 import time
-import traceback
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -10,15 +9,14 @@ from selenium.webdriver.support import expected_conditions as EC
 import re
 from pyquery import PyQuery as pq
 
+from problem_data.data_config import wait_time
 from problem_info.info_util import parse_problem
 from utils import mongo_util
 from config import *
 from const import *
 from utils.brower_util import click_by_selector
-from utils.in_site import InSite
 
 driver = webdriver.Chrome()
-wait_time = 8
 
 
 def get_problem_html(problem):
@@ -104,11 +102,10 @@ def check_problem_set():
     return False
 
 
-
 def jump_to_problem_set_site(driver):
     # 切换到跳转的页面--练习系统,judge login success by link_text
-    #set_btn.click()
-    click_by_selector(driver,"#nav_yhdl_s140928 > dd:nth-child(2) > a")
+    # set_btn.click()
+    click_by_selector(driver, "#nav_yhdl_s140928 > dd:nth-child(2) > a")
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, ".table"))
     )

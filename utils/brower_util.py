@@ -12,7 +12,7 @@ def click_by_selector(driver, selector_str):
     :param driver: brower
     :param selector_str:
     :return: True: not time_out
-            Flase: time_out
+            False: time_out
     """
     try:
         confirm_button = WebDriverWait(driver, wait_time).until(

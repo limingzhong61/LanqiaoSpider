@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-import copy
-import re
 import traceback
 
 import pymongo
@@ -72,7 +70,3 @@ def __update_all_problem_state__():
 if __name__ == "__main__":
     ""
     # problem_collection.update_many({"html": {"$exists": True}}, {"$unset": {"html": ""}})
-
-    one = problem_collection.find_one({"title": "my a+b"})
-    print(one)
-    problem_collection.find_one_and_delete({"title": "my a+b"})

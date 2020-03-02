@@ -1,14 +1,21 @@
 # coding:utf-8
 import os
 import re
+import time
 import traceback
 
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from config import *
 from const import *
 from problem_data.data_config import base_search_url, wait_time, base_save_path
-from utils import mongo_util
+from utils import mongo_util, brower_util
 from utils.in_site import *
-from utils.logout import logout
+
+from utils.brower_util import click_by_selector
+from utils.site_util import logout, in_practice_set_site
 
 
 class GetData:
@@ -176,7 +183,7 @@ def get_problem_file(problem):
         mongo_util.save_problem(problem)
         return True
     path = base_save_path + '\\' + title
-    driver = driver_util.get_driver_with_download_path(path)
+    driver = brower_util.get_driver_with_download_path(path)
     for user in USERS:
         # 朱文杰
         # if user.real_name == "朱文杰":
@@ -186,7 +193,7 @@ def get_problem_file(problem):
             # every new problem will create new dirver
             print(user.real_name + ": begin--------------")
             # get file successful
-            InSite(driver=driver, user=user).in_practice_set_site()
+            in_practice_set_site(driver=driver, user=user)
             if GetData(driver=driver, path=path, user=user).get_problem_data(problem=problem):
                 # 休息一下，时间太短爬取会被封掉下载文件资格，
                 '''
