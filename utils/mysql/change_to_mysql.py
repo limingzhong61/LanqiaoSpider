@@ -205,14 +205,7 @@ def clone_problem_data(mysql_id, problem_id):
     """
     source_dir = problem_save_path + "/" + problem_id
     target_dir = problem_mysql_save_path + "/" + str(mysql_id)
-    # maybe target_dir don't exist.
-    if not os.path.exists(target_dir):
-        os.mkdir(target_dir)
-        print(target_dir + ' 创建成功')
-    else:
-        print(target_dir + ' 目录已存在,则不再复制文件到此类目录中')
-        return
-    clone_all_files(source_dir, target_dir)
+    shutil.copytree(source_dir, target_dir)
 
 
 def update_mongodb(problem, mysql_id):
@@ -222,6 +215,8 @@ def update_mongodb(problem, mysql_id):
 
 
 def main():
+    # 重新开始记得，清空关联mysql_id
+    # problem_collection.update_many({}, {"$set": {Problem.MYSQL_ID: ""}})
     # 按照一定的顺序
     for begin_prefix in tag_dict.values():
         id_reg = {"$regex": "^" + begin_prefix}
@@ -233,14 +228,12 @@ def main():
             mysql_id = problem.get(Problem.MYSQL_ID)
             # maybe mysql field == ""
             find_problem = find_in_mysql_with_id(problem[Problem.MYSQL_ID])
-            if mysql_id:
-                continue
             if find_problem:
                 print("{%s} is already in mysql table" % title)
             else:
                 inset_to_mysql(problem)
                 print("{} inserts in mysql table".format(title))
-    total = problem_collection.count_documents(query)
+    total = problem_collection.count_documents({Problem.DATA_STATUS: StateValue.FILE_SUCCESS})
     print("total download file success = {}".format(total))
     mysql_db.close()
 

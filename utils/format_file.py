@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 import re
 import traceback
-import json
 from gevent import os
 
 from config import problem_save_path
