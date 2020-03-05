@@ -4,6 +4,7 @@ import traceback
 import json
 from gevent import os
 
+from config import base_save_path
 from const import Problem, StateValue
 from problem_data.data_config import *
 from utils.mongo_util import problem_collection

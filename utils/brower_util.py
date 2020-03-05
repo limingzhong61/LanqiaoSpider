@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 
-from problem_data.data_config import wait_time
+from config import wait_time
 
 
 def click_by_selector(driver, selector_str):
@@ -25,6 +25,23 @@ def click_by_selector(driver, selector_str):
     except TimeoutException:
         print('TimeoutException')
         return False
+
+
+def input_by_selector(driver, selector_str, input_str):
+    """
+    :param input_str: to input_element
+    :param driver: brower
+    :param selector_str:
+    :return: True: not time_out
+            False: time_out
+    """
+    try:
+        input_element = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, selector_str))
+        )
+        input_element.send_keys(input_str)
+    except TimeoutException:
+        print('TimeoutException')
 
 
 def get_driver_with_download_path(download_path):

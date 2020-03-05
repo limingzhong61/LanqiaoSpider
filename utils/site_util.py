@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.action_chains import ActionChains
 
 from config import site_url
-from utils.brower_util import click_by_selector
+from utils.brower_util import click_by_selector, input_by_selector
 
 
 # site_url = "http://dasai.lanqiao.cn/"
@@ -31,29 +31,21 @@ def logout(driver, wait_time):
 
 
 def login(driver, user):
-    username = user.username
-    password = user.password
-    try:
-        driver.get(site_url)
-        # driver.maximize_window() #将浏览器最大化显示
-        # login_button.click()
-        click_by_selector(driver, "#btnShowLoginDialog")
-        username_input = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR,
-                                        "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(1) > div > div > span > input"))
-        )
-        username_input.send_keys(username)
-        pwd_input = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR,
-                 "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(2) > div > div > span > input"))
-        )
-        pwd_input.send_keys(password)
-        # confirm_button.click()
-        click_by_selector(driver,
-                          "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(4) > div > div > span > button")
-    except TimeoutException:
-        print('TimeoutException')
+    driver.get(site_url)
+    # driver.maximize_window() #将浏览器最大化显示
+    # login_button.click()
+    click_by_selector(driver, "#btnShowLoginDialog")
+    # username_input.send_keys(username)
+    input_by_selector(driver,
+                      "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(1) > div > div > span > input",
+                      user.username)
+    # pwd_input.send_keys(password)
+    input_by_selector(driver,
+                      "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(2) > div > div > span > input",
+                      user.password)
+    # confirm_button.click()
+    click_by_selector(driver,
+                      "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(4) > div > div > span > button")
 
 
 def in_practice_set_site(driver, user):

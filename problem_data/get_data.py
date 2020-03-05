@@ -10,134 +10,120 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from config import *
 from const import *
-from problem_data.data_config import base_search_url, wait_time, base_save_path
 from utils import mongo_util, brower_util
-from utils.in_site import *
 
 from utils.brower_util import click_by_selector
 from utils.site_util import logout, in_practice_set_site
 
 
-class GetData:
-    def __init__(self, driver, path, user):
-        self.driver = driver
-        self.path = path
-        self.user = user
-
-    def get_problem_data(self, problem):
-        """
-        if get file successful
-        :param problem:
-        :return: bool
-        """
-        driver = self.driver
-        driver.maximize_window()  # 将浏览器最大化显示，不然不能检测到题目详情的链接
-        title = problem[Problem.TITLE]
-        user = self.user
-        driver.get(base_search_url + title)
+def get_problem_data(driver, user, path, problem):
+    """
+    if get file successful
+    :param path: download path to save data files
+    :param user:
+    :param driver:
+    :param problem:
+    :return: bool
+    """
+    driver.maximize_window()  # 将浏览器最大化显示，不然不能检测到题目详情的链接
+    title = problem[Problem.TITLE]
+    driver.get(base_search_url + title)
+    try:
+        # detail_link.click()
+        if not click_by_selector(driver, "#status-list > tr:nth-child(1) > td:nth-child(11) > a"):
+            print('''not find submit item,that mean you don't try this problem''')
+            submit_problem(driver, problem[Problem.HREF])
+            return get_problem_data(driver, user, path, problem)
+        ## 下载按钮s
+        ## 判断页面是否存在, even can search submisson info,but still juding.
         try:
-            # detail_link.click()
-            if not click_by_selector(driver, "#status-list > tr:nth-child(1) > td:nth-child(11) > a"):
-                print('''not find submit item,that mean you don't try this problem''')
-                # return
-                self.submit_problem(problem[Problem.HREF])
-                return self.get_problem_data(problem)
-            ## 下载按钮s
-            ## 判断页面是否存在, even can search submisson info,but still juding.
-            try:
-
-                WebDriverWait(driver, wait_time).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "body > div.main > div > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"))
-                )
-                # "body > div.main > div > table > tbody > tr:nth-child(12) > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"
-            except TimeoutException:
-                print('''not find submit detail,that mean this submission still judging''')
-                # try again
-                return self.get_problem_data(problem)
-            buttons = driver.find_elements(By.CSS_SELECTOR,
-                                           "body > div.main > div > table > tbody > tr > td > table > tbody  a")
-
-            # print(len(buttons))
-            # return
-            try:
-                file_dict = {}
-                for root, dirs, files in os.walk(self.path):
-                    for file in files:
-                        file_dict[file] = True
-                input_dict = {
-                    "输入": 'input',
-                    "输出": 'output'
-                }
-                click_cnt = 0
-                file_cnt = len(buttons)
-                # can full try,use it then can't try new one
-                for btn in buttons:
-                    lick_text = btn.get_attribute('onclick')
-                    lick_num = re.search(r'\d+', lick_text).group(0)
-                    lick_name = btn.text
-                    # print(lick_name + lick_num)
-                    file_name = input_dict[lick_name] + lick_num + ".txt";
-                    if file_dict.get(file_name, False):
-                        print(file_name + ":exist", end="")
-                    else:
-                        print(file_name + ": not exist,downloading...", end="")
-                        btn.click()
-                        self.user.tryTime -= 1
-                        if self.user.tryTime == 0:
-                            print("\n user {} tryTime run out".format(self.user.real_name))
-                            break
-                        time.sleep(1)
-                    # confirm have this file
-                    click_cnt += 1
-                    print("            rate:{}/{}".format(click_cnt, file_cnt))
-                # checking if total file equals  problem data
-                # have not download successful,don't forget '/'
-                while confirm_all_downloaded(base_save_path + "/" + problem[Problem.TITLE]):
-                    print("wait util download successful..... ")
-                    time.sleep(1)
-                # normal over flag
-                if click_cnt == file_cnt:
-                    print("-----get problem file success-----")
-                    problem[Problem.DATA_STATUS] = StateValue.FILE_SUCCESS
-                else:
-                    print("tryTime run out,get file {},file not enough for {}".format(click_cnt, file_cnt))
-                    problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
-            except Exception as e:
-                traceback.print_exc()
-                # gain data error
-                problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
-                user.canTry = False
-                print("-----click error by lanqiao server, get problem data error-----")
-            mongo_util.save_problem(problem)
-            # normal end
-            return problem[Problem.DATA_STATUS] == StateValue.FILE_SUCCESS
+            WebDriverWait(driver, wait_time).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR,
+                     "body > div.main > div > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"))
+            )
         except TimeoutException:
+            print('''not find submit detail,that mean this submission still judging''')
+            # try again
+            return get_problem_data(driver, user, path, problem)
+        buttons = driver.find_elements(By.CSS_SELECTOR,
+                                       "body > div.main > div > table > tbody > tr > td > table > tbody  a")
+        try:
+            file_dict = {}
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    file_dict[file] = True
+            input_dict = {
+                "输入": 'input',
+                "输出": 'output'
+            }
+            click_cnt = 0
+            file_cnt = len(buttons)
+            # can full try,use it then can't try new one
+            for btn in buttons:
+                lick_text = btn.get_attribute('onclick')
+                lick_num = re.search(r'\d+', lick_text).group(0)
+                lick_name = btn.text
+                # print(lick_name + lick_num)
+                file_name = input_dict[lick_name] + lick_num + ".txt";
+                if file_dict.get(file_name, False):
+                    print(file_name + ":exist", end="")
+                else:
+                    print(file_name + ": not exist,downloading...", end="")
+                    btn.click()
+                    user.tryTime -= 1
+                    if user.tryTime == 0:
+                        print("\n user {} tryTime run out".format(user.real_name))
+                        break
+                    time.sleep(1)
+                # confirm have this file
+                click_cnt += 1
+                print("            rate:{}/{}".format(click_cnt, file_cnt))
+            # checking if total file equals  problem data
+            # have not download successful,don't forget '/'
+            while confirm_all_downloaded(base_save_path + "/" + problem[Problem.TITLE]):
+                print("wait util download successful..... ")
+                time.sleep(1)
+            # normal over flag
+            if click_cnt == file_cnt:
+                print("-----get problem file success-----")
+                problem[Problem.DATA_STATUS] = StateValue.FILE_SUCCESS
+            else:
+                print("tryTime run out,get file {},file not enough for {}".format(click_cnt, file_cnt))
+                problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
+        except Exception as e:
             traceback.print_exc()
+            # gain data error
             problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
-            print("get problem data error")
-            mongo_util.save_problem(problem)
-            return False
+            user.canTry = False
+            print("-----click error by lanqiao server, get problem data error-----")
+        mongo_util.save_problem(problem)
+        # normal end
+        return problem[Problem.DATA_STATUS] == StateValue.FILE_SUCCESS
+    except TimeoutException:
+        traceback.print_exc()
+        problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
+        print("get problem data error")
+        mongo_util.save_problem(problem)
+        return False
 
-    def submit_problem(self, href):
-        driver = self.driver
-        # get pid
-        pattern = re.compile("/??gpid=(.*)")
-        search = re.search(pattern, href)
-        current_pid = search.group(1)
-        submit_script = """var currentGPID = "%s"
-            var vcode = "int main() { return 0;}", vlang = "CPP";
-            $.post("/test.SubmitCode.dt", {gpid:currentGPID,lang:vlang,code:vcode}, function(obj){
-            setData("lastlang", vlang);
-            if (""+obj["ret"]=="1")
-                window.location.href = "/status.page";
-            else
-                alert(obj["msg"]);
-            }, "json");""" % current_pid
-        # print(submit_script)
-        driver.execute_script('window.scrollTo(0, document.body.scrollHeight)')
-        driver.execute_script(submit_script)
+
+def submit_problem(driver, href):
+    # get pid
+    pattern = re.compile("/??gpid=(.*)")
+    search = re.search(pattern, href)
+    current_pid = search.group(1)
+    submit_script = """var currentGPID = "%s"
+        var vcode = "int main() { return 0;}", vlang = "CPP";
+        $.post("/test.SubmitCode.dt", {gpid:currentGPID,lang:vlang,code:vcode}, function(obj){
+        setData("lastlang", vlang);
+        if (""+obj["ret"]=="1")
+            window.location.href = "/status.page";
+        else
+            alert(obj["msg"]);
+        }, "json");""" % current_pid
+    driver.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+    driver.execute_script(submit_script)
 
 
 def confirm_all_downloaded(path):
@@ -194,7 +180,7 @@ def get_problem_file(problem):
             print(user.real_name + ": begin--------------")
             # get file successful
             in_practice_set_site(driver=driver, user=user)
-            if GetData(driver=driver, path=path, user=user).get_problem_data(problem=problem):
+            if get_problem_data(driver=driver, path=path, user=user, problem=problem):
                 # 休息一下，时间太短爬取会被封掉下载文件资格，
                 '''
                     下载一个半就GG了，第二天（24小时之后，才能下载）
