@@ -34,9 +34,6 @@ class StateValue:
     # get problem data to local file system
     FILE_SUCCESS = "file_success"
     FILE_NAME_ERROR = "file_name_error"
-    # 数据成功保存在数据库
-    DATA_SUCCESS = "data_success"
-    PARSE_DATA_ERROR = "parse_data_error"
 
 
 class InfoStatusValue:

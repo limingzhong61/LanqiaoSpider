@@ -4,7 +4,7 @@ import traceback
 import json
 from gevent import os
 
-from config import base_save_path
+from config import problem_save_path
 from const import Problem, StateValue
 from problem_data.data_config import *
 from utils.mongo_util import problem_collection
@@ -18,7 +18,7 @@ def remove_blank_chars(txt):
 
 
 def get_format_data(problem_title):
-    path = base_save_path + "\\" + problem_title
+    path = problem_save_path + "\\" + problem_title
     for root, dirs, files in os.walk(path):
         # 遍历文件
         data_dict = {}
@@ -77,7 +77,7 @@ def save_file_to_db(query, problem):
 
 
 def main():
-    for root, dirs, files in os.walk(base_save_path):
+    for root, dirs, files in os.walk(problem_save_path):
         # 遍历所有的文件夹
         for d in dirs:
             # print(os.path.join(root, d))

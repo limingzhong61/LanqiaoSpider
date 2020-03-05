@@ -81,7 +81,7 @@ def get_problem_data(driver, user, path, problem):
                 print("            rate:{}/{}".format(click_cnt, file_cnt))
             # checking if total file equals  problem data
             # have not download successful,don't forget '/'
-            while confirm_all_downloaded(base_save_path + "/" + problem[Problem.TITLE]):
+            while confirm_all_downloaded(problem_save_path + "/" + problem[Problem.ID]):
                 print("wait util download successful..... ")
                 time.sleep(1)
             # normal over flag
@@ -158,17 +158,8 @@ def get_problem_file(problem):
         :return: bool 是否能继续尝试
         """
     # 获取爬取的题目
-    title = problem[Problem.TITLE]
-    # 对文件和文件夹命名是不能使用以下9个字符：
-    # / \ : * " < > | ？
-    result = re.search(r'[/\:*"<>|？]', title)
-    if result:
-        problem[Problem.DATA_STATUS] = StateValue.FILE_NAME_ERROR
-        print(" error,file Name has a illegal character: {}".format(result))
-        print("get problem data error")
-        mongo_util.save_problem(problem)
-        return True
-    path = base_save_path + '\\' + title
+    problem_id = problem[Problem.ID]
+    path = problem_save_path + '\\' + problem_id
     driver = brower_util.get_driver_with_download_path(path)
     for user in USERS:
         # 朱文杰
@@ -211,7 +202,7 @@ def judge_enough_problem_set(problem_set):
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
     success_query = {Problem.ID: id_reg, Problem.DATA_STATUS: {
-        "$in": [StateValue.FILE_SUCCESS, StateValue.DATA_SUCCESS, StateValue.PARSE_DATA_ERROR]}}
+        "$in": [StateValue.FILE_SUCCESS]}}
     print(success_query)
     query_cnt = mongo_util.problem_collection.count_documents(success_query)
     judge_result = int(total) == query_cnt

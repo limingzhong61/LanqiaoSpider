@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
+import os
+import shutil
 import traceback
 
 import pymongo
-from config import MONGO
+from config import MONGO, problem_save_path
 from const import *
 
 client = pymongo.MongoClient(MONGO.URL)
@@ -67,6 +69,29 @@ def __update_all_problem_state__():
         print('update to mongoDB successfully', new_problem)
 
 
-if __name__ == "__main__":
-    ""
-    # problem_collection.update_many({"html": {"$exists": True}}, {"$unset": {"html": ""}})
+def set_problem_file_error(title):
+    myquery = {Problem.TITLE: title}
+    newvalues = {"$set": {Problem.DATA_STATUS: StateValue.FILE_ERROR}}
+    problem_collection.update_many(myquery, newvalues)
+    print("set %s data state to file error" % title)
+
+
+# if __name__ == "__main__":
+    # ""
+    # for problem in problem_collection.find():
+    #     # print(problem)
+    #     # if problem_collection.count_documents({Problem.ID: problem[Problem.ID]}) != 1 :
+    #     #     print("id find not equals 1")
+    #     title = problem[Problem.TITLE]
+    #     if problem_collection.count_documents({Problem.TITLE: title}) != 1:
+    #         # print("title find not equals 1")
+    #         success_problem = problem_collection.find(
+    #             {Problem.TITLE: problem[Problem.TITLE], Problem.DATA_STATUS: StateValue.FILE_SUCCESS})
+    #         if success_problem:
+    #             full_name = problem_save_path + "\\" + title
+    #             if os.path.exists(full_name):
+    #                 shutil.rmtree(full_name)
+    #                 print("dir %s delete" % full_name)
+    #             myquery = {Problem.TITLE: title}
+    #             newvalues = {"$set": {Problem.DATA_STATUS: StateValue.FILE_ERROR}}
+    #             problem_collection.update_many(myquery, newvalues)
