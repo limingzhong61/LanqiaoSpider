@@ -2,6 +2,7 @@ import os
 import re
 
 from config import problem_save_path, problem_mysql_save_path
+from utils import mongo_util
 from utils.file_util import clone_all_files
 from utils.mysql.mysql_db import *
 from utils.mongo_util import *
@@ -25,7 +26,7 @@ def get_format_problem(problem, name_list):
     for idx in name_list:
         if idx == Problem.ID:
             # need string
-            insert_problem.append(get_max_problem_id() + 1)
+            insert_problem.append(get_insert_problem_id())
             continue
         elif idx == Problem.USER_ID:
             insert_problem.append(1)
@@ -49,7 +50,7 @@ def inset_to_mysql(problem):
     memory_limit,time_limit) 
     VALUES(%d,%d,'%s','%s','%s','%s','%s','%s','%s','%s',%s,%s)
         """ % tuple(insert_problem)
-    print(sql)
+    # print(sql)
     try:
         # 执行sql语句
         mysql_cursor.execute(sql)
@@ -62,14 +63,15 @@ def inset_to_mysql(problem):
         # 如果发生错误则回滚
         mysql_db.rollback()
     # check if insert success
-    problem_id = get_max_problem_id() + 1
-    if find_in_mysql_with_id(problem_id):
-        clone_problem_data(problem_id, problem[Problem.TITLE])
+    mysql_id = insert_problem[0]
+    if find_in_mysql_with_id(mysql_id):
+        clone_problem_data(mysql_id, problem[Problem.ID])
+        update_mongodb(problem, mysql_id=mysql_id)
     else:
-        print("not find problem with problem id = %d" % problem_id)
+        print("not find problem with problem id = %d" % mysql_id)
 
 
-def get_max_problem_id():
+def get_insert_problem_id():
     # SQL 查询语句
     sql = "SELECT max(problem_id) FROM problem where problem_id"
     try:
@@ -77,8 +79,12 @@ def get_max_problem_id():
         mysql_cursor.execute(sql)
         # 获取所有记录列表
         result = mysql_cursor.fetchone()
-        print(result[0])
-        return result[0]
+        # 有可能一个都没有, None
+        max_id = result[0]
+        if not max_id:
+            return 1000
+        else:
+            return max_id + 1
     except:
         traceback.print_exc()
         print("Error: unable to fetch data")
@@ -192,13 +198,13 @@ def update_problem_data(problem):
         return False
 
 
-def clone_problem_data(problem_id, problem_title):
+def clone_problem_data(mysql_id, problem_id):
     """
     clone problem data form download with problem_id as directory name
     :return:
     """
-    source_dir = problem_save_path + "/" + problem_title
-    target_dir = problem_mysql_save_path + "/" + str(problem_id)
+    source_dir = problem_save_path + "/" + problem_id
+    target_dir = problem_mysql_save_path + "/" + str(mysql_id)
     # maybe target_dir don't exist.
     if not os.path.exists(target_dir):
         os.mkdir(target_dir)
@@ -209,39 +215,33 @@ def clone_problem_data(problem_id, problem_title):
     clone_all_files(source_dir, target_dir)
 
 
+def update_mongodb(problem, mysql_id):
+    problem[Problem.MYSQL_ID] = mysql_id
+    mongo_util.problem_collection. \
+        update_one({Problem.ID: problem[Problem.ID]}, {"$set": {Problem.MYSQL_ID: mysql_id}})
+
+
 def main():
-    # 数据成功下载
-    query = {Problem.DATA_STATUS: StateValue.FILE_SUCCESS}
-    problems = problem_collection.find(query)
+    # 按照一定的顺序
+    for begin_prefix in tag_dict.values():
+        id_reg = {"$regex": "^" + begin_prefix}
+        query = {Problem.ID: id_reg, Problem.DATA_STATUS: StateValue.FILE_SUCCESS}
+        problems = problem_collection.find(query).sort(Problem.ID)
+        for problem in problems:
+            print(problem[Problem.ID])
+            title = problem[Problem.TITLE]
+            mysql_id = problem.get(Problem.MYSQL_ID)
+            # maybe mysql field == ""
+            find_problem = find_in_mysql_with_id(problem[Problem.MYSQL_ID])
+            if mysql_id:
+                continue
+            if find_problem:
+                print("{%s} is already in mysql table" % title)
+            else:
+                inset_to_mysql(problem)
+                print("{} inserts in mysql table".format(title))
     total = problem_collection.count_documents(query)
     print("total download file success = {}".format(total))
-    update_cnt = 0
-    insert_cnt = 0
-    diff_cnt = 0
-    for problem in problems:
-        # title maybe have some prefix
-        title = problem[Problem.TITLE]
-        title = title.replace("VIP试题 ", "").strip()
-        title = deal_text_format(title)
-        query_cnt = problem_collection.count_documents({Problem.TITLE: title,Problem.DATA_STATUS: StateValue.FILE_SUCCESS})
-        if query_cnt > 1:
-            diff_cnt += query_cnt - 1
-            print("file name same = {}".format(query_cnt))
-        find_problem = find_in_mysql_with_title(title)
-        if find_problem:
-            update_cnt += 1
-            print("{} is already in mysql table".format(title))
-            continue
-            # problem_id = find_problem[0][0]
-            # print(problem_id)
-            # clone_problem_data(problem_id, problem[Problem.TITLE])
-        else:
-            insert_cnt += 1
-            inset_to_mysql(problem)
-            print("{} inserts in mysql table".format(title))
-    print("total different = {}".format(diff_cnt))
-    print("total update success = {}".format(update_cnt))
-    print("total insert success = {}".format(insert_cnt))
     mysql_db.close()
 
 

@@ -64,5 +64,5 @@ def delete_all_cache_file():
 #             print("{%s} will be replace with {%s}" % (root, newname))
 
 
-if __name__ == '__main__':
-    alter_all_file_name()
+# if __name__ == '__main__':
+    # alter_all_file_name()

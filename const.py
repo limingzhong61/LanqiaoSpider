@@ -13,7 +13,7 @@ class Problem:
     HINT = "hint"
     VIP = "vip"
     DATA = "data"
-    PROBLEM_ID = "problem_id"
+    MYSQL_ID = "problem_id" # 与mysql关联的id值
     USER_ID = "user_id"
     DATA_STATUS = "state"
     # status of get problem info
