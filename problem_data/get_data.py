@@ -12,7 +12,7 @@ from config import *
 from const import *
 from utils import mongo_util, brower_util
 
-from utils.brower_util import click_by_selector
+from utils.brower_util import click_by_selector, presence_of_element_located_by_selector
 from utils.site_util import logout, in_practice_set_site
 
 
@@ -29,6 +29,20 @@ def get_problem_data(driver, user, path, problem):
     title = problem[Problem.TITLE]
     driver.get(base_search_url + title)
     try:
+        if not presence_of_element_located_by_selector(driver, "#status-list > tr:nth-child(1) > td.pname > a"):
+            print('''not find problem href,that mean you don't try this problem''')
+            submit_problem(driver, problem[Problem.HREF])
+            return get_problem_data(driver, user, path, problem)
+        problem_href = driver.find_element(By.CSS_SELECTOR, "#status-list > tr:nth-child(1) > td.pname > a")
+        get_href = problem_href.get_property("href")
+        print(get_href)
+        real_href = problem[Problem.HREF]
+        if not str(get_href).find(real_href):
+            print('''not find real problem href,that mean you don't try this problem''')
+            submit_problem(driver, problem[Problem.HREF])
+            return get_problem_data(driver, user, path, problem)
+        else:
+            print('''find real problem href,that mean you can continue download this problem''')
         # detail_link.click()
         if not click_by_selector(driver, "#status-list > tr:nth-child(1) > td:nth-child(11) > a"):
             print('''not find submit item,that mean you don't try this problem''')
@@ -36,13 +50,8 @@ def get_problem_data(driver, user, path, problem):
             return get_problem_data(driver, user, path, problem)
         ## 下载按钮s
         ## 判断页面是否存在, even can search submisson info,but still juding.
-        try:
-            WebDriverWait(driver, wait_time).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR,
-                     "body > div.main > div > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"))
-            )
-        except TimeoutException:
+        if not presence_of_element_located_by_selector(driver,
+                                                       "body > div.main > div > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > a:nth-child(1)"):
             print('''not find submit detail,that mean this submission still judging''')
             # try again
             return get_problem_data(driver, user, path, problem)
@@ -163,7 +172,7 @@ def get_problem_file(problem):
     driver = brower_util.get_driver_with_download_path(path)
     for user in USERS:
         # 朱文杰
-        # if user.real_name == "朱文杰":
+        # if user.real_name != "朱文杰":
         #     continue
         print("{}: tryTime:{},canTry:{}".format(user.real_name, user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:

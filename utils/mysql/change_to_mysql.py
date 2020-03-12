@@ -1,9 +1,8 @@
-import os
 import re
+import shutil
 
 from config import problem_save_path, problem_mysql_save_path
 from utils import mongo_util
-from utils.file_util import clone_all_files
 from utils.mysql.mysql_db import *
 from utils.mongo_util import *
 

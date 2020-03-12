@@ -6,7 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.action_chains import ActionChains
 
-from config import site_url
+from const import site_url
 from utils.brower_util import click_by_selector, input_by_selector
 
 

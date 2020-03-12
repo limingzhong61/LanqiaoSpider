@@ -9,12 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 import re
 from pyquery import PyQuery as pq
 
-from problem_data.data_config import wait_time
 from problem_info.info_util import parse_problem
 from utils import mongo_util
 from config import *
 from const import *
 from utils.brower_util import click_by_selector
+from utils.site_util import in_practice_set_site
 
 driver = webdriver.Chrome()
 
@@ -114,7 +114,7 @@ def jump_to_problem_set_site(driver):
 
 
 def main():
-    InSite(driver=driver, user=USERS[0]).in_practice_set_site()
+    in_practice_set_site(driver=driver,user=USERS[0])
     # html = jump_to_problem_set_site(driver)
     # 获取了set之后，直接从数据库获取
     time.sleep(10)

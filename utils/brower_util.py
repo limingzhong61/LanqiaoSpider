@@ -7,6 +7,15 @@ from selenium import webdriver
 from config import wait_time
 
 
+def execute_by_timeout_exception(func):
+    try:
+        func
+        return True
+    except TimeoutException:
+        print('TimeoutException')
+        return False
+
+
 def click_by_selector(driver, selector_str):
     """
     :param driver: brower
@@ -14,17 +23,15 @@ def click_by_selector(driver, selector_str):
     :return: True: not time_out
             False: time_out
     """
-    try:
+
+    def click():
         confirm_button = WebDriverWait(driver, wait_time).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR,
                  selector_str))
         )
         confirm_button.click()
-        return True
-    except TimeoutException:
-        print('TimeoutException')
-        return False
+    return execute_by_timeout_exception(click())
 
 
 def input_by_selector(driver, selector_str, input_str):
@@ -35,13 +42,24 @@ def input_by_selector(driver, selector_str, input_str):
     :return: True: not time_out
             False: time_out
     """
-    try:
+    def input():
         input_element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, selector_str))
         )
         input_element.send_keys(input_str)
-    except TimeoutException:
-        print('TimeoutException')
+    return execute_by_timeout_exception(input())
+
+
+def presence_of_element_located_by_selector(driver, selector_str):
+
+    def located():
+        WebDriverWait(driver, wait_time).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR,
+                 selector_str))
+        )
+    return execute_by_timeout_exception(located())
+
 
 
 def get_driver_with_download_path(download_path):

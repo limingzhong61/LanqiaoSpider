@@ -1,22 +1,21 @@
 # -*- coding:utf-8 -*-
-import os
-import shutil
+import re
 import traceback
 
 import pymongo
-from config import MONGO, problem_save_path
+from config import Mongo
 from const import *
 
-client = pymongo.MongoClient(MONGO.URL)
+client = pymongo.MongoClient(Mongo.URL)
 # dblist = client.list_database_names()
 # if MONGO.DB in dblist:
 #     print("数据库已存在！")
 
-db = client[MONGO.DB]
+db = client[Mongo.DB]
 
-problem_collection = db[MONGO.TABLE.PROBLEM]
-problem_set_collection = db[MONGO.TABLE.PROBLEM_SET]
-test_collection = db[MONGO.TABLE.TEST]
+problem_collection = db[Mongo.Table.PROBLEM]
+problem_set_collection = db[Mongo.Table.PROBLEM_SET]
+test_collection = db[Mongo.Table.TEST]
 
 
 def save_problem_set(problem_set):
@@ -34,22 +33,23 @@ def save_problem_set(problem_set):
 
 def save_problem(problem):
     title = problem[Problem.TITLE]
+    id = problem[Problem.ID]
     try:
-        if problem_collection.find_one({"id": problem['id']}):
+        if problem_collection.find_one({Problem.ID: id}):
             try:
                 new_problem = {"$set": problem}
                 # print(new_problem)
-                if problem_collection.update_one({"id": problem['id']}, new_problem):
-                    print('"%s" update to mongoDB successfully' % title)
+                if problem_collection.update_one({Problem.ID: id}, new_problem):
+                    print('"%s %s" update to mongoDB successfully' % (id, title))
             except Exception:
                 traceback.print_exc()
                 # 更新插入更多字段会出错
-                print('"%s" update  to mongoDB fail!!!!!!' % title)
+                print('"%s %s" update  to mongoDB fail!!!!!!' % (id, title))
         else:
             if problem_collection.insert_one(problem):
-                print('"%s" insert to mongoDB successfully' % title)
+                print('"%s %s" insert to mongoDB successfully' % (id, title))
     except Exception:
-        print('"%s" save to mongoDB error' % title)
+        print('"%s %s" save to mongoDB error' % (id, title))
 
 
 def __update_all_problem_state__():
@@ -66,4 +66,13 @@ def set_problem_file_error(title):
     print("set %s data state to file error" % title)
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    for find_problem in problem_collection.find({Problem.DATA_STATUS: StateValue.FILE_SUCCESS}):
+        title = find_problem[Problem.TITLE]
+        title_cnt = problem_collection.count_documents({Problem.TITLE: title})
+        # print("title_cnt %d,title = %s" % (title_cnt, title))
+        if title_cnt != 1:
+            print("title_cnt %d,title = %s" % (title_cnt, title))
+    title = "矩阵乘法"
+    for problem in problem_collection.find({Problem.TITLE: title}):
+        print(problem)

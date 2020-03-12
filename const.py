@@ -12,8 +12,7 @@ class Problem:
     FORMAT_OUTPUT = "format_output"
     HINT = "hint"
     VIP = "vip"
-    DATA = "data"
-    MYSQL_ID = "problem_id" # 与mysql关联的id值
+    MYSQL_ID = "problem_id"  # 与mysql关联的id值
     USER_ID = "user_id"
     DATA_STATUS = "state"
     # status of get problem info
@@ -54,3 +53,24 @@ tag_dict = {
     "算法提高": "ADV",
     "历届试题": "PREV",
 }
+
+
+class User:
+    def __init__(self, real_name, username, password):
+        self.real_name = real_name
+        self.username = username
+        self.password = password
+        # 最多能下载40次左右
+        self.tryTime = 40
+        self.canTry = True
+
+
+# 登录跳转网址，需要在此网址登录，才能到练习系统网址
+site_url = "http://dasai.lanqiao.cn/"
+# 练习系统网址
+base_practice_url = "http://lx.lanqiao.cn"
+
+# --------------- data configuration ----------
+# parse html max wait time, 10 is too long , try with eight
+
+base_search_url = "http://lx.lanqiao.cn/status.page?sename=&seprname="
