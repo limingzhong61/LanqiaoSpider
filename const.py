@@ -65,8 +65,6 @@ class User:
         self.canTry = True
 
 
-# 登录跳转网址，需要在此网址登录，才能到练习系统网址
-site_url = "http://dasai.lanqiao.cn/"
 # 练习系统网址
 base_practice_url = "http://lx.lanqiao.cn"
 

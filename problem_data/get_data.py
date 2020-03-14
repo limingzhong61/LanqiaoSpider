@@ -6,8 +6,6 @@ import traceback
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from config import *
 from const import *
 from utils import mongo_util, brower_util
@@ -100,7 +98,7 @@ def get_problem_data(driver, user, path, problem):
             else:
                 print("tryTime run out,get file {},file not enough for {}".format(click_cnt, file_cnt))
                 problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
             # gain data error
             problem[Problem.DATA_STATUS] = StateValue.FILE_ERROR
