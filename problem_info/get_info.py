@@ -13,7 +13,7 @@ from problem_info.info_util import parse_problem
 from utils import mongo_util
 from config import *
 from const import *
-from utils.brower_util import click_by_selector
+from utils.browser_util import click_by_selector
 from utils.site_util import in_practice_set_site
 
 driver = webdriver.Chrome()

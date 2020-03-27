@@ -8,9 +8,9 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from config import *
 from const import *
-from utils import mongo_util, brower_util
+from utils import mongo_util, browser_util
 
-from utils.brower_util import click_by_selector, presence_of_element_located_by_selector
+from utils.browser_util import click_by_selector, presence_of_element_located_by_selector
 from utils.site_util import logout, in_practice_set_site
 
 
@@ -78,10 +78,10 @@ def get_problem_data(driver, user, path, problem):
                 else:
                     print(file_name + ": not exist,downloading...", end="")
                     btn.click()
-                    user.tryTime -= 1
                     if user.tryTime == 0:
                         print("\n user {} tryTime run out".format(user.real_name))
                         break
+                    user.tryTime -= 1
                     time.sleep(1)
                 # confirm have this file
                 click_cnt += 1
@@ -152,9 +152,8 @@ def find_not_file_success_problems(problem_set):
     name = problem_set[ProblemSet.NAME]
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
-    # first to solve data_error.
-    query = {"$or": [{Problem.ID: id_reg, Problem.DATA_STATUS: StateValue.FILE_ERROR},
-                     {Problem.ID: id_reg, Problem.DATA_STATUS: InfoStatusValue.HTML_SUCCESS}]}
+    # first to solve not equals data_success.
+    query = {Problem.ID: id_reg, Problem.DATA_STATUS: {"$ne": StateValue.FILE_SUCCESS}}
     return mongo_util.problem_collection.find(query)
 
 
@@ -167,10 +166,10 @@ def get_problem_file(problem):
     # 获取爬取的题目
     problem_id = problem[Problem.ID]
     path = problem_save_path + '\\' + problem_id
-    driver = brower_util.get_driver_with_download_path(path)
+    driver = browser_util.get_driver_with_download_path(path)
     for user in USERS:
-        # 朱文杰
-        # if user.real_name != "朱文杰":
+        # 朱文杰, 王眺
+        # if user.real_name != "王眺":
         #     continue
         print("{}: tryTime:{},canTry:{}".format(user.real_name, user.tryTime, user.canTry))
         if user.tryTime != 0 and user.canTry:
@@ -205,16 +204,16 @@ def get_problem_file(problem):
 
 def judge_enough_problem_set(problem_set):
     name = problem_set[ProblemSet.NAME]
-    total = problem_set[ProblemSet.TOTAL]
     begin_prefix = tag_dict[name]
     id_reg = {"$regex": "^" + begin_prefix}
+    total = mongo_util.problem_collection.count_documents({Problem.ID: id_reg})
     success_query = {Problem.ID: id_reg, Problem.DATA_STATUS: {
         "$in": [StateValue.FILE_SUCCESS]}}
     print(success_query)
     query_cnt = mongo_util.problem_collection.count_documents(success_query)
     judge_result = int(total) == query_cnt
     if judge_result:
-        print(name + "total=" + str(total) + ": OK")
+        print(name + ": total=" + str(total) + " OK")
     else:
         print("problem_data: " + str(query_cnt) + " file not enough for " + str(total))
     return judge_result

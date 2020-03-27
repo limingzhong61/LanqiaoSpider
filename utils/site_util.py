@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.action_chains import ActionChains
 
 from const import base_practice_url
-from utils.brower_util import click_by_selector, input_by_selector
+from utils.browser_util import click_by_selector, input_by_selector
 
 
 # site_url = "http://dasai.lanqiao.cn/"
@@ -27,14 +27,14 @@ def logout(driver, wait_time):
     click_by_selector(driver, "body > div.navigation.mainmenu > div > ul > li:nth-child(12) > ul > li > a")
     # 清除浏览器cookies
     cookies = driver.get_cookies()
-    print(f"main: cookies = {cookies}")
+    # print(f"main: cookies = {cookies}")
     driver.delete_all_cookies()
     print("---logout successfully---")
 
 
 def login_site(driver, user):
     driver.get(base_practice_url)
-    driver.maximize_window() #将浏览器最大化显示
+    driver.maximize_window()  # 将浏览器最大化显示
     # login_button.click()
     if not click_by_selector(driver, "#xloginbtn"):
         login_site(driver, user)
@@ -52,22 +52,20 @@ def login_site(driver, user):
                       "#app > div > div > div.session-form > div > div.login-wrap > div > div.ant-tabs-content.ant-tabs-content-animated.ant-tabs-top-content > div.ant-tabs-tabpane.ant-tabs-tabpane-active > form > div:nth-child(4) > div > div > span > button")
 
 
-
 def in_practice_set_site(driver, user):
     login_site(driver, user)
+
     try:
-        login_success = WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 10).until(
             EC.text_to_be_present_in_element(
                 (By.CSS_SELECTOR, "body > div.navigation.mainmenu > div > ul > li:nth-child(2) > a"),
                 "试题集")
         )
+        return True
     except TimeoutException:
         # jump to practice site error,not exist 试题集, close error window
         driver.close()
         print('TimeoutException')
         # try again
-        in_practice_set_site()
-
-    #  return when login success
-    if login_success:
-        return login_success
+        in_practice_set_site(driver, user)
+        return False

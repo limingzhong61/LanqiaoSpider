@@ -67,12 +67,23 @@ def set_problem_file_error(title):
 
 
 if __name__ == "__main__":
-    for find_problem in problem_collection.find({Problem.DATA_STATUS: StateValue.FILE_SUCCESS}):
-        title = find_problem[Problem.TITLE]
-        title_cnt = problem_collection.count_documents({Problem.TITLE: title})
-        # print("title_cnt %d,title = %s" % (title_cnt, title))
-        if title_cnt != 1:
-            print("title_cnt %d,title = %s" % (title_cnt, title))
-    title = "矩阵乘法"
-    for problem in problem_collection.find({Problem.TITLE: title}):
-        print(problem)
+    id_reg = {"$regex": "^" + "ALGO"}
+    query = {"$or": [{Problem.ID: id_reg, Problem.DATA_STATUS: StateValue.FILE_ERROR},
+                     {Problem.ID: id_reg, Problem.INFO_STATUS: InfoStatusValue.HTML_SUCCESS}]}
+    query = None
+    for find_problem in problem_collection.find(query):
+        status = find_problem.get(Problem.DATA_STATUS)
+        if not status:
+            print(find_problem)
+            print(find_problem[Problem.INFO_STATUS])
+            print(status)
+        # if status != StateValue.FILE_SUCCESS:
+        #     print(status)
+    #     title = find_problem[Problem.TITLE]
+    #     title_cnt = problem_collection.count_documents({Problem.TITLE: title})
+    #     # print("title_cnt %d,title = %s" % (title_cnt, title))
+    #     if title_cnt != 1:
+    #         print("title_cnt %d,title = %s" % (title_cnt, title))
+    # title = "矩阵乘法"
+    # for problem in problem_collection.find({Problem.TITLE: title}):
+    #     print(problem)
